@@ -1,0 +1,802 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>A Friendly Game - Admin Matching Tool</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            padding: 30px;
+        }
+        h1 {
+            color: #CB6335;
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        .section {
+            margin: 30px 0;
+            padding: 20px;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+        }
+        .section h2 {
+            color: #5C697A;
+            margin-top: 0;
+        }
+        textarea {
+            width: 100%;
+            height: 200px;
+            padding: 15px;
+            border: 2px solid #ddd;
+            border-radius: 5px;
+            font-family: monospace;
+            font-size: 14px;
+        }
+        button {
+            background: #CB6335;
+            color: white;
+            border: none;
+            padding: 12px 25px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 16px;
+            margin: 10px 5px;
+        }
+        button:hover {
+            background: #B85A2B;
+        }
+        button:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+        }
+        .user-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 20px 0;
+        }
+        .user-table th, .user-table td {
+            border: 1px solid #ddd;
+            padding: 12px;
+            text-align: left;
+        }
+        .user-table th {
+            background: #f8f9fa;
+            font-weight: bold;
+            color: #5C697A;
+        }
+        .user-table tr:hover {
+            background: #f5f5f5;
+            cursor: pointer;
+        }
+        .selected-user {
+            background: #e3f2fd !important;
+        }
+        .comparison {
+            background: #f0f8ff;
+            border: 2px solid #CB6335;
+            padding: 20px;
+            border-radius: 8px;
+            margin: 20px 0;
+        }
+        .overlap-score {
+            font-size: 24px;
+            font-weight: bold;
+            text-align: center;
+            margin: 20px 0;
+            padding: 15px;
+            background: #CB6335;
+            color: white;
+            border-radius: 8px;
+        }
+        .assessment-comparison {
+            display: grid;
+            grid-template-columns: 1fr 1fr 1fr;
+            gap: 15px;
+            margin: 15px 0;
+        }
+        .assessment-item {
+            padding: 10px;
+            border-radius: 5px;
+            font-size: 14px;
+        }
+        .match { background: #d4edda; border-left: 4px solid #28a745; }
+        .partial { background: #fff3cd; border-left: 4px solid #ffc107; }
+        .no-match { background: #f8d7da; border-left: 4px solid #dc3545; }
+        .missing { background: #e2e3e5; border-left: 4px solid #6c757d; }
+        
+        .export-section {
+            background: #f8f9fa;
+            padding: 20px;
+            border-radius: 8px;
+            margin: 20px 0;
+        }
+        .stats {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin: 20px 0;
+        }
+        .stat-card {
+            background: white;
+            padding: 15px;
+            border-radius: 5px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+            text-align: center;
+        }
+        .stat-number {
+            font-size: 24px;
+            font-weight: bold;
+            color: #CB6335;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🎮 A Friendly Game - Admin Matching Tool</h1>
+        
+        <!-- Email Input Section -->
+        <div class="section">
+            <h2>📧 Add User Data</h2>
+            <p>Paste the complete email content from a user's assessment submission:</p>
+            <textarea id="emailInput" placeholder="Paste email content here...
+
+Example:
+FIND MY PEOPLE DATA COLLECTION COMPLETED
+Completed: 8/25/2025
+=== REQUIRED ASSESSMENTS ===
+SKILLS ASSESSMENT: Brainstorming, Disrupting the status quo, Seeing the subtext
+VALUES ASSESSMENT: Independence, Creativity, Helping
+..."></textarea>
+            <br>
+            <button onclick="parseEmail()">📝 Add User</button>
+            <button onclick="clearInput()">🗑️ Clear Input</button>
+        </div>
+
+        <!-- User Database Section -->
+        <div class="section">
+            <h2>👥 User Database</h2>
+            <div class="stats" id="statsContainer">
+                <div class="stat-card">
+                    <div class="stat-number" id="totalUsers">0</div>
+                    <div>Total Users</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-number" id="completeUsers">0</div>
+                    <div>Complete Profiles</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-number" id="avgCompletion">0%</div>
+                    <div>Avg Completion</div>
+                </div>
+            </div>
+            
+            <p>Click on users to select them for comparison:</p>
+            <table class="user-table" id="userTable">
+                <thead>
+                    <tr>
+                        <th>Email</th>
+                        <th>Date</th>
+                        <th>Skills</th>
+                        <th>Values</th>
+                        <th>Personality</th>
+                        <th>Gaming Type</th>
+                        <th>Complete</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody id="userTableBody">
+                    <!-- Users will be populated here -->
+                </tbody>
+            </table>
+        </div>
+
+        <!-- Comparison Section -->
+        <div class="section" id="comparisonSection" style="display: none;">
+            <h2>🔍 User Comparison</h2>
+            <div id="comparisonContent">
+                <!-- Comparison results will appear here -->
+            </div>
+        </div>
+
+        <!-- Tournament Planning Section -->
+        <div class="section">
+            <h2>🎮 Tournament Grouping</h2>
+            <div id="tournamentGroups">
+                <p>Create balanced groups for Discord tournaments based on compatibility:</p>
+                <div style="margin: 15px 0;">
+                    <label>Tournament Type: </label>
+                    <select id="tournamentType">
+                        <option value="2v2">2v2 Teams</option>
+                        <option value="4player">4-Player Groups</option>
+                        <option value="6player">6-Player Groups</option>
+                        <option value="custom">Custom Size</option>
+                    </select>
+                    <button onclick="generateTournamentGroups()" style="margin-left: 10px;">🎲 Auto-Group Users</button>
+                </div>
+                <div id="groupResults"></div>
+            </div>
+        </div>
+
+        <!-- Export Section -->
+        <div class="section export-section">
+            <h2>📊 Export Data</h2>
+            <p>Export your user data for Google Sheets, Discord planning, or further analysis:</p>
+            <button onclick="exportToCSV()">📋 Download CSV</button>
+            <button onclick="exportToJSON()">💾 Download JSON</button>
+            <button onclick="exportDiscordFormat()">🎮 Discord Tournament List</button>
+            <button onclick="showGoogleSheetsFormat()">📈 Google Sheets Format</button>
+            <div id="exportPreview" style="margin-top: 20px;"></div>
+        </div>
+    </div>
+
+    <script>
+        let users = [];
+        let selectedUsers = [];
+        let tournamentGroups = [];
+        let savedMatches = [];
+
+        function parseEmail() {
+            const emailContent = document.getElementById('emailInput').value.trim();
+            if (!emailContent) {
+                alert('Please paste an email first!');
+                return;
+            }
+
+            try {
+                const userData = extractUserData(emailContent);
+                if (userData) {
+                    // Check if user already exists
+                    const existingIndex = users.findIndex(user => user.email === userData.email);
+                    if (existingIndex !== -1) {
+                        users[existingIndex] = userData; // Update existing
+                        alert('User updated successfully!');
+                    } else {
+                        users.push(userData);
+                        alert('User added successfully!');
+                    }
+                    
+                    updateUserTable();
+                    updateStats();
+                    document.getElementById('emailInput').value = '';
+                } else {
+                    alert('Could not parse email. Please check the format.');
+                }
+            } catch (error) {
+                console.error('Parse error:', error);
+                alert('Error parsing email: ' + error.message);
+            }
+        }
+
+        function extractUserData(emailContent) {
+            // Extract email address (we'll need to get this from the recipient)
+            const emailMatch = emailContent.match(/([a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,})/);
+            const email = emailMatch ? emailMatch[1] : `user${users.length + 1}@example.com`;
+
+            // Extract completion date
+            const dateMatch = emailContent.match(/Completed:\s*([0-9\/]+)/);
+            const completionDate = dateMatch ? dateMatch[1] : new Date().toLocaleDateString();
+
+            // Extract assessments
+            const data = {
+                email: email,
+                completionDate: completionDate,
+                skills: extractAssessment(emailContent, 'SKILLS ASSESSMENT'),
+                values: extractAssessment(emailContent, 'VALUES ASSESSMENT'),
+                interests: extractAssessment(emailContent, 'INTEREST ASSESSMENT'),
+                personality: extractAssessment(emailContent, 'PERSONALITY ASSESSMENT'),
+                gamingCharacter: extractAssessment(emailContent, 'GAMING CHARACTER ASSESSMENT'),
+                political: extractAssessment(emailContent, 'POLITICAL TYPOLOGY ASSESSMENT'),
+                religiousCentrality: extractAssessment(emailContent, 'RELIGIOUS CENTRALITY ASSESSMENT')
+            };
+
+            return data;
+        }
+
+        function extractAssessment(content, assessmentName) {
+            const regex = new RegExp(assessmentName + ':\\s*([^\n\r]+)', 'i');
+            const match = content.match(regex);
+            return match ? match[1].trim() : null;
+        }
+
+        function updateUserTable() {
+            const tbody = document.getElementById('userTableBody');
+            tbody.innerHTML = '';
+
+            users.forEach((user, index) => {
+                const row = document.createElement('tr');
+                row.onclick = () => selectUser(index);
+                
+                const completionCount = [user.skills, user.values, user.interests, user.personality, user.gamingCharacter].filter(x => x).length;
+                const isComplete = completionCount === 5;
+                
+                row.innerHTML = `
+                    <td>${user.email}</td>
+                    <td>${user.completionDate}</td>
+                    <td>${user.skills ? '✅' : '❌'}</td>
+                    <td>${user.values ? '✅' : '❌'}</td>
+                    <td>${user.personality || 'Missing'}</td>
+                    <td>${user.gamingCharacter ? user.gamingCharacter.split('|')[0].trim() : 'Missing'}</td>
+                    <td>${isComplete ? '✅ Complete' : `📊 ${completionCount}/5`}</td>
+                    <td><button onclick="event.stopPropagation(); removeUser(${index})">🗑️</button></td>
+                `;
+                
+                if (selectedUsers.includes(index)) {
+                    row.classList.add('selected-user');
+                }
+                
+                tbody.appendChild(row);
+            });
+        }
+
+        function selectUser(index) {
+            if (selectedUsers.includes(index)) {
+                selectedUsers = selectedUsers.filter(i => i !== index);
+            } else {
+                selectedUsers.push(index);
+            }
+
+            // Limit to 2 users for comparison
+            if (selectedUsers.length > 2) {
+                selectedUsers = selectedUsers.slice(-2);
+            }
+
+            updateUserTable();
+            
+            if (selectedUsers.length === 2) {
+                showComparison();
+            } else {
+                document.getElementById('comparisonSection').style.display = 'none';
+            }
+        }
+
+        function removeUser(index) {
+            users.splice(index, 1);
+            selectedUsers = selectedUsers.filter(i => i !== index).map(i => i > index ? i - 1 : i);
+            updateUserTable();
+            updateStats();
+            if (selectedUsers.length < 2) {
+                document.getElementById('comparisonSection').style.display = 'none';
+            }
+        }
+
+        function showComparison() {
+            const user1 = users[selectedUsers[0]];
+            const user2 = users[selectedUsers[1]];
+            
+            const comparison = calculateOverlap(user1, user2);
+            
+            document.getElementById('comparisonSection').style.display = 'block';
+            document.getElementById('comparisonContent').innerHTML = `
+                <div class="comparison">
+                    <h3>🔍 Comparing ${user1.email} vs ${user2.email}</h3>
+                    <div class="overlap-score">Overall Compatibility: ${comparison.overallScore}%</div>
+                    
+                    <h4>📊 Assessment Breakdown:</h4>
+                    ${generateComparisonHTML(comparison)}
+                    
+                    <h4>💡 Matching Insights:</h4>
+                    <ul>
+                        ${comparison.insights.map(insight => `<li>${insight}</li>`).join('')}
+                    </ul>
+                    
+                    <div style="margin-top: 20px; text-align: center;">
+                        <button onclick="addToTournamentGroup(${selectedUsers[0]}, ${selectedUsers[1]})">
+                            🎮 Add to Tournament Group
+                        </button>
+                        <button onclick="saveMatchData(${selectedUsers[0]}, ${selectedUsers[1]})">
+                            💾 Save This Match for Analysis
+                        </button>
+                    </div>
+                </div>
+            `;
+        }
+
+        function calculateOverlap(user1, user2) {
+            const assessments = [
+                { name: 'Skills', key: 'skills', weight: 20 },
+                { name: 'Values', key: 'values', weight: 25 },
+                { name: 'Interests', key: 'interests', weight: 20 },
+                { name: 'Personality', key: 'personality', weight: 15 },
+                { name: 'Gaming Character', key: 'gamingCharacter', weight: 20 }
+            ];
+
+            let totalScore = 0;
+            let totalWeight = 0;
+            const details = [];
+            const insights = [];
+
+            assessments.forEach(assessment => {
+                const val1 = user1[assessment.key];
+                const val2 = user2[assessment.key];
+                
+                if (val1 && val2) {
+                    const score = calculateAssessmentScore(val1, val2, assessment.key);
+                    totalScore += score * assessment.weight;
+                    totalWeight += assessment.weight;
+                    
+                    details.push({
+                        name: assessment.name,
+                        user1: val1,
+                        user2: val2,
+                        score: score,
+                        status: getMatchStatus(score)
+                    });
+
+                    // Generate insights
+                    if (score >= 80) {
+                        insights.push(`🔥 Strong ${assessment.name.toLowerCase()} alignment (${score}%)`);
+                    } else if (score <= 20) {
+                        insights.push(`⚠️ Very different ${assessment.name.toLowerCase()} - could be complementary or challenging`);
+                    }
+                } else {
+                    details.push({
+                        name: assessment.name,
+                        user1: val1 || 'Missing',
+                        user2: val2 || 'Missing',
+                        score: null,
+                        status: 'missing'
+                    });
+                }
+            });
+
+            // Add optional assessments
+            if (user1.political && user2.political) {
+                const politicalScore = user1.political === user2.political ? 100 : 0;
+                details.push({
+                    name: 'Political Views',
+                    user1: user1.political,
+                    user2: user2.political,
+                    score: politicalScore,
+                    status: getMatchStatus(politicalScore)
+                });
+                if (politicalScore === 100) {
+                    insights.push(`🏛️ Same political alignment`);
+                }
+            }
+
+            if (user1.religiousCentrality && user2.religiousCentrality) {
+                details.push({
+                    name: 'Religious Centrality',
+                    user1: user1.religiousCentrality,
+                    user2: user2.religiousCentrality,
+                    score: null,
+                    status: 'info'
+                });
+            }
+
+            return {
+                overallScore: totalWeight > 0 ? Math.round(totalScore / totalWeight) : 0,
+                details: details,
+                insights: insights.length > 0 ? insights : ['No specific insights generated - review individual scores']
+            };
+        }
+
+        function calculateAssessmentScore(val1, val2, type) {
+            if (type === 'personality') {
+                // Simple MBTI comparison
+                if (val1 === val2) return 100;
+                const shared = val1.split('').filter((char, i) => char === val2.charAt(i)).length;
+                return Math.round((shared / 4) * 100);
+            }
+            
+            if (type === 'gamingCharacter') {
+                const parts1 = val1.split('|').map(s => s.trim());
+                const parts2 = val2.split('|').map(s => s.trim());
+                
+                let matches = 0;
+                let total = 0;
+                
+                // Compare gaming type
+                if (parts1[0] && parts2[0]) {
+                    total++;
+                    if (parts1[0].toLowerCase() === parts2[0].toLowerCase()) matches++;
+                }
+                
+                return total > 0 ? Math.round((matches / total) * 100) : 0;
+            }
+            
+            // For skills, values, interests - check word overlaps
+            const words1 = val1.toLowerCase().split(/[,\s]+/).filter(w => w.length > 2);
+            const words2 = val2.toLowerCase().split(/[,\s]+/).filter(w => w.length > 2);
+            
+            const commonWords = words1.filter(word => 
+                words2.some(w2 => w2.includes(word) || word.includes(w2))
+            );
+            
+            const totalWords = Math.max(words1.length, words2.length);
+            return totalWords > 0 ? Math.round((commonWords.length / totalWords) * 100) : 0;
+        }
+
+        function getMatchStatus(score) {
+            if (score === null) return 'missing';
+            if (score >= 70) return 'match';
+            if (score >= 40) return 'partial';
+            return 'no-match';
+        }
+
+        function generateComparisonHTML(comparison) {
+            return comparison.details.map(detail => `
+                <div class="assessment-comparison">
+                    <div class="assessment-item">
+                        <strong>${detail.name}</strong>
+                    </div>
+                    <div class="assessment-item ${detail.status}">
+                        <strong>User 1:</strong> ${detail.user1}
+                    </div>
+                    <div class="assessment-item ${detail.status}">
+                        <strong>User 2:</strong> ${detail.user2}
+                        ${detail.score !== null ? `<br><strong>Match: ${detail.score}%</strong>` : ''}
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        function updateStats() {
+            const total = users.length;
+            const complete = users.filter(user => 
+                [user.skills, user.values, user.interests, user.personality, user.gamingCharacter].filter(x => x).length === 5
+            ).length;
+            
+            const totalAssessments = users.reduce((sum, user) => {
+                return sum + [user.skills, user.values, user.interests, user.personality, user.gamingCharacter].filter(x => x).length;
+            }, 0);
+            
+            const avgCompletion = total > 0 ? Math.round((totalAssessments / (total * 5)) * 100) : 0;
+
+            document.getElementById('totalUsers').textContent = total;
+            document.getElementById('completeUsers').textContent = complete;
+            document.getElementById('avgCompletion').textContent = avgCompletion + '%';
+        }
+
+        function clearInput() {
+            document.getElementById('emailInput').value = '';
+        }
+
+        function exportToCSV() {
+            const headers = ['Email', 'Completion Date', 'Skills', 'Values', 'Interests', 'Personality', 'Gaming Character', 'Political', 'Religious Centrality'];
+            const rows = users.map(user => [
+                user.email,
+                user.completionDate,
+                user.skills || '',
+                user.values || '',
+                user.interests || '',
+                user.personality || '',
+                user.gamingCharacter || '',
+                user.political || '',
+                user.religiousCentrality || ''
+            ]);
+
+            const csvContent = [headers, ...rows].map(row => 
+                row.map(cell => `"${cell}"`).join(',')
+            ).join('\n');
+
+            downloadFile('afriendlygame-users.csv', csvContent, 'text/csv');
+        }
+
+        function exportToJSON() {
+            const jsonContent = JSON.stringify(users, null, 2);
+            downloadFile('afriendlygame-users.json', jsonContent, 'application/json');
+        }
+
+        function downloadFile(filename, content, contentType) {
+            const blob = new Blob([content], { type: contentType });
+            const url = window.URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = filename;
+            a.click();
+            window.URL.revokeObjectURL(url);
+        }
+
+        function showGoogleSheetsFormat() {
+            if (users.length === 0) {
+                alert('No users to export!');
+                return;
+            }
+
+            const headers = ['Email', 'Completion Date', 'Skills', 'Values', 'Interests', 'Personality', 'Gaming Character', 'Political', 'Religious Centrality'];
+            const preview = document.getElementById('exportPreview');
+            
+            let html = '<h3>📋 Copy this data to Google Sheets:</h3>';
+            html += '<textarea style="width: 100%; height: 300px; font-family: monospace;">';
+            html += headers.join('\t') + '\n';
+            
+            users.forEach(user => {
+                const row = [
+                    user.email,
+                    user.completionDate,
+                    user.skills || '',
+                    user.values || '',
+                    user.interests || '',
+                    user.personality || '',
+                    user.gamingCharacter || '',
+                    user.political || '',
+                    user.religiousCentrality || ''
+                ];
+                html += row.join('\t') + '\n';
+            });
+            
+            html += '</textarea>';
+            html += '<p><strong>Instructions:</strong> Select all text above, copy (Ctrl+C), then paste into your Google Sheet starting at cell A1.</p>';
+            
+            preview.innerHTML = html;
+        }
+
+        function addToTournamentGroup(userIndex1, userIndex2) {
+            const user1 = users[userIndex1];
+            const user2 = users[userIndex2];
+            const comparison = calculateOverlap(user1, user2);
+            
+            // Find existing group or create new one
+            let existingGroup = tournamentGroups.find(group => 
+                group.members.some(member => member.email === user1.email || member.email === user2.email)
+            );
+            
+            if (existingGroup) {
+                // Add to existing group if not already there
+                if (!existingGroup.members.some(m => m.email === user1.email)) {
+                    existingGroup.members.push(user1);
+                }
+                if (!existingGroup.members.some(m => m.email === user2.email)) {
+                    existingGroup.members.push(user2);
+                }
+            } else {
+                // Create new group
+                tournamentGroups.push({
+                    id: Date.now(),
+                    members: [user1, user2],
+                    compatibility: comparison.overallScore,
+                    created: new Date().toLocaleDateString()
+                });
+            }
+            
+            alert(`Added users to tournament group! (${comparison.overallScore}% compatibility)`);
+            updateTournamentDisplay();
+        }
+
+        function saveMatchData(userIndex1, userIndex2) {
+            const user1 = users[userIndex1];
+            const user2 = users[userIndex2];
+            const comparison = calculateOverlap(user1, user2);
+            
+            savedMatches.push({
+                user1: user1.email,
+                user2: user2.email,
+                compatibility: comparison.overallScore,
+                details: comparison.details,
+                saved: new Date().toLocaleDateString()
+            });
+            
+            alert('Match data saved for future analysis!');
+        }
+
+        function generateTournamentGroups() {
+            const tournamentType = document.getElementById('tournamentType').value;
+            let groupSize = 2;
+            
+            switch(tournamentType) {
+                case '2v2': groupSize = 4; break;
+                case '4player': groupSize = 4; break;
+                case '6player': groupSize = 6; break;
+                case 'custom': 
+                    groupSize = parseInt(prompt('Enter group size:') || '4');
+                    break;
+            }
+            
+            // Simple grouping algorithm - can be improved
+            const availableUsers = users.filter(user => 
+                [user.skills, user.values, user.interests, user.personality, user.gamingCharacter].filter(x => x).length >= 4
+            );
+            
+            if (availableUsers.length < groupSize) {
+                alert(`Not enough complete users for ${groupSize}-person groups. Need at least ${groupSize}, have ${availableUsers.length}.`);
+                return;
+            }
+            
+            // Clear existing auto-generated groups
+            tournamentGroups = tournamentGroups.filter(group => !group.autoGenerated);
+            
+            // Create balanced groups
+            for (let i = 0; i < availableUsers.length; i += groupSize) {
+                const groupMembers = availableUsers.slice(i, i + groupSize);
+                if (groupMembers.length === groupSize) {
+                    tournamentGroups.push({
+                        id: Date.now() + i,
+                        members: groupMembers,
+                        autoGenerated: true,
+                        type: tournamentType,
+                        created: new Date().toLocaleDateString()
+                    });
+                }
+            }
+            
+            updateTournamentDisplay();
+        }
+
+        function updateTournamentDisplay() {
+            const container = document.getElementById('groupResults');
+            if (tournamentGroups.length === 0) {
+                container.innerHTML = '<p>No tournament groups created yet.</p>';
+                return;
+            }
+            
+            let html = '<h4>🎮 Tournament Groups:</h4>';
+            tournamentGroups.forEach((group, index) => {
+                html += `
+                    <div style="background: #f8f9fa; padding: 15px; margin: 10px 0; border-radius: 8px; border-left: 4px solid #CB6335;">
+                        <h5>Group ${index + 1} ${group.type ? `(${group.type})` : ''} ${group.autoGenerated ? '[Auto-Generated]' : '[Manual]'}</h5>
+                        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 10px;">
+                            ${group.members.map(member => `
+                                <div style="background: white; padding: 10px; border-radius: 5px;">
+                                    <strong>${member.email}</strong><br>
+                                    <small>
+                                        ${member.personality || 'No personality'} | 
+                                        ${member.gamingCharacter ? member.gamingCharacter.split('|')[0] : 'No gaming type'}
+                                    </small>
+                                </div>
+                            `).join('')}
+                        </div>
+                        <div style="text-align: right; margin-top: 10px;">
+                            <button onclick="removeGroup(${index})" style="background: #dc3545; padding: 5px 10px; font-size: 12px;">
+                                Remove Group
+                            </button>
+                        </div>
+                    </div>
+                `;
+            });
+            
+            container.innerHTML = html;
+        }
+
+        function removeGroup(index) {
+            tournamentGroups.splice(index, 1);
+            updateTournamentDisplay();
+        }
+
+        function exportDiscordFormat() {
+            if (tournamentGroups.length === 0) {
+                alert('No tournament groups to export!');
+                return;
+            }
+            
+            let discordText = `**🎮 A Friendly Game Tournament Groups - ${new Date().toLocaleDateString()}**\n\n`;
+            
+            tournamentGroups.forEach((group, index) => {
+                discordText += `**Group ${index + 1}** ${group.type ? `(${group.type})` : ''}\n`;
+                group.members.forEach(member => {
+                    const memberInfo = member.email.split('@')[0]; // Use username part of email
+                    const personality = member.personality || 'Unknown';
+                    const gamingType = member.gamingCharacter ? member.gamingCharacter.split('|')[0] : 'Unknown';
+                    discordText += `• ${memberInfo} - ${personality} | ${gamingType}\n`;
+                });
+                discordText += '\n';
+            });
+            
+            discordText += `\n*Generated by A Friendly Game Admin Tool*`;
+            
+            const preview = document.getElementById('exportPreview');
+            preview.innerHTML = `
+                <h3>📱 Discord Tournament Groups Format:</h3>
+                <textarea style="width: 100%; height: 300px; font-family: monospace;">${discordText}</textarea>
+                <p><strong>Instructions:</strong> Copy the text above and paste it into your Discord tournament channel.</p>
+                <button onclick="navigator.clipboard.writeText('${discordText.replace(/'/g, "\\'")}')">📋 Copy to Clipboard</button>
+            `;
+        }
+
+        // Initialize
+        updateStats();
+        updateTournamentDisplay();
+    </script>
+</body>
+</html>
