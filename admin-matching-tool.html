@@ -157,15 +157,7 @@
         <div class="section">
             <h2>Add User Data</h2>
             <p>Paste the complete email content from a user's assessment submission:</p>
-            <textarea id="emailInput" placeholder="Paste email content here...
-
-Example:
-FIND MY PEOPLE DATA COLLECTION COMPLETED
-Completed: 8/25/2025
-=== REQUIRED ASSESSMENTS ===
-SKILLS ASSESSMENT: Brainstorming, Disrupting the status quo, Seeing the subtext
-VALUES ASSESSMENT: Independence, Creativity, Helping
-..."></textarea>
+            <textarea id="emailInput" placeholder="Paste email content here..."></textarea>
             <br>
             <button onclick="parseEmail()">Add User</button>
             <button onclick="clearInput()">Clear Input</button>
@@ -273,10 +265,9 @@ VALUES ASSESSMENT: Independence, Creativity, Helping
                 console.log('Extracted user data:', userData);
                 
                 if (userData && userData.email) {
-                    // Check if user already exists
                     const existingIndex = users.findIndex(user => user.email === userData.email);
                     if (existingIndex !== -1) {
-                        users[existingIndex] = userData; // Update existing
+                        users[existingIndex] = userData;
                         alert('User updated successfully!');
                     } else {
                         users.push(userData);
@@ -287,22 +278,20 @@ VALUES ASSESSMENT: Independence, Creativity, Helping
                     updateStats();
                     document.getElementById('emailInput').value = '';
                 } else {
-                    alert('Could not parse email. Please check the format.\n\nExpected format should include:\n- Email address\n- Completion date\n- Assessment results');
+                    alert('Could not parse email. Please check the format.');
                     console.error('Failed to extract user data:', userData);
                 }
             } catch (error) {
                 console.error('Parse error:', error);
-                alert('Error parsing email: ' + error.message + '\n\nCheck the browser console (F12) for more details.');
+                alert('Error parsing email: ' + error.message);
             }
         }
 
         function extractUserData(emailContent) {
             console.log('Starting extraction...');
             
-            // Extract email address - handle your specific format
             let emailMatch = emailContent.match(/\(([a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,})\)/);
             
-            // If not found, look for any email address
             if (!emailMatch) {
                 emailMatch = emailContent.match(/([a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,})/);
             }
@@ -314,12 +303,10 @@ VALUES ASSESSMENT: Independence, Creativity, Helping
                 throw new Error('No email address found in the content');
             }
 
-            // Extract completion date
             const dateMatch = emailContent.match(/Completed:\s*([0-9\/]+)/);
             const completionDate = dateMatch ? dateMatch[1] : new Date().toLocaleDateString();
             console.log('Extracted date:', completionDate);
 
-            // Extract assessments with improved error handling
             const data = {
                 email: email,
                 completionDate: completionDate,
@@ -334,7 +321,6 @@ VALUES ASSESSMENT: Independence, Creativity, Helping
 
             console.log('Final extracted data:', data);
 
-            // Validate that we got at least some assessment data
             const hasData = Object.values(data).some(value => value && typeof value === 'string' && value.length > 0);
             if (!hasData) {
                 throw new Error('No assessment data found. Please check the email format.');
@@ -345,7 +331,6 @@ VALUES ASSESSMENT: Independence, Creativity, Helping
 
         function extractAssessment(content, assessmentName) {
             try {
-                // Handle both "ASSESSMENT:" and "ASSESSMENT " formats
                 const regex1 = new RegExp(assessmentName + ':\\s*([^\n\r]+)', 'i');
                 const regex2 = new RegExp(assessmentName + '\\s+([^\n\r]+)', 'i');
                 
@@ -371,13 +356,9 @@ VALUES ASSESSMENT: Independence, Creativity, Helping
                 const row = document.createElement('tr');
                 row.onclick = () => selectUser(index);
                 
-                // Count required assessments (5 total)
                 const requiredCount = [user.skills, user.values, user.interests, user.personality, user.gamingCharacter].filter(x => x).length;
                 const isComplete = requiredCount === 5;
-                
-                // Count optional assessments
                 const optionalCount = [user.political, user.religiousCentrality].filter(x => x).length;
-                const totalCount = requiredCount + optionalCount;
                 
                 row.innerHTML = `
                     <td class="assessment-data">${user.email}</td>
@@ -408,7 +389,6 @@ VALUES ASSESSMENT: Independence, Creativity, Helping
                 selectedUsers.push(index);
             }
 
-            // Limit to 2 users for comparison
             if (selectedUsers.length > 2) {
                 selectedUsers = selectedUsers.slice(-2);
             }
@@ -478,7 +458,6 @@ VALUES ASSESSMENT: Independence, Creativity, Helping
             const details = [];
             const insights = [];
 
-            // Process required assessments
             assessments.forEach(assessment => {
                 const val1 = user1[assessment.key];
                 const val2 = user2[assessment.key];
@@ -496,7 +475,6 @@ VALUES ASSESSMENT: Independence, Creativity, Helping
                         status: getMatchStatus(score)
                     });
 
-                    // Generate insights
                     if (score >= 80) {
                         insights.push(`Strong ${assessment.name.toLowerCase()} alignment (${score}%)`);
                     } else if (score <= 20) {
@@ -513,8 +491,7 @@ VALUES ASSESSMENT: Independence, Creativity, Helping
                 }
             });
 
-            // Handle optional assessments - ONLY compare if BOTH users completed them
-            // Political assessment
+            // Handle optional assessments - only compare if BOTH users completed them
             if (user1.political && user2.political) {
                 const politicalScore = user1.political === user2.political ? 100 : 0;
                 details.push({
@@ -530,7 +507,6 @@ VALUES ASSESSMENT: Independence, Creativity, Helping
                     insights.push(`Different political views: ${user1.political} vs ${user2.political}`);
                 }
             } else {
-                // Show for reference but don't affect compatibility score
                 details.push({
                     name: 'Political Views',
                     user1: user1.political || 'Not completed',
@@ -538,20 +514,13 @@ VALUES ASSESSMENT: Independence, Creativity, Helping
                     score: null,
                     status: 'missing'
                 });
-                if (user1.political && !user2.political) {
-                    insights.push(`${user1.email} completed political assessment, ${user2.email} did not`);
-                } else if (!user1.political && user2.political) {
-                    insights.push(`${user2.email} completed political assessment, ${user1.email} did not`);
-                }
             }
 
-            // Religious centrality assessment
             if (user1.religiousCentrality && user2.religiousCentrality) {
-                // Extract numeric values for religious centrality comparison
                 const religiousVal1 = parseFloat(user1.religiousCentrality.match(/[\d.]+/)?.[0] || 0);
                 const religiousVal2 = parseFloat(user2.religiousCentrality.match(/[\d.]+/)?.[0] || 0);
                 const religiousDiff = Math.abs(religiousVal1 - religiousVal2);
-                const religiousScore = Math.max(0, Math.round(100 - (religiousDiff * 25))); // Scale difference
+                const religiousScore = Math.max(0, Math.round(100 - (religiousDiff * 25)));
                 
                 details.push({
                     name: 'Religious Centrality',
@@ -567,7 +536,6 @@ VALUES ASSESSMENT: Independence, Creativity, Helping
                     insights.push(`Very different religious involvement levels - could be significant`);
                 }
             } else {
-                // Show for reference but don't affect compatibility score
                 details.push({
                     name: 'Religious Centrality',
                     user1: user1.religiousCentrality || 'Not completed',
@@ -575,11 +543,6 @@ VALUES ASSESSMENT: Independence, Creativity, Helping
                     score: null,
                     status: 'missing'
                 });
-                if (user1.religiousCentrality && !user2.religiousCentrality) {
-                    insights.push(`${user1.email} completed religious assessment, ${user2.email} did not`);
-                } else if (!user1.religiousCentrality && user2.religiousCentrality) {
-                    insights.push(`${user2.email} completed religious assessment, ${user1.email} did not`);
-                }
             }
 
             return {
@@ -591,7 +554,6 @@ VALUES ASSESSMENT: Independence, Creativity, Helping
 
         function calculateAssessmentScore(val1, val2, type) {
             if (type === 'personality') {
-                // Simple MBTI comparison
                 if (val1 === val2) return 100;
                 const shared = val1.split('').filter((char, i) => char === val2.charAt(i)).length;
                 return Math.round((shared / 4) * 100);
@@ -604,7 +566,6 @@ VALUES ASSESSMENT: Independence, Creativity, Helping
                 let matches = 0;
                 let total = 0;
                 
-                // Compare gaming type
                 if (parts1[0] && parts2[0]) {
                     total++;
                     if (parts1[0].toLowerCase() === parts2[0].toLowerCase()) matches++;
@@ -613,7 +574,6 @@ VALUES ASSESSMENT: Independence, Creativity, Helping
                 return total > 0 ? Math.round((matches / total) * 100) : 0;
             }
             
-            // For skills, values, interests - check word overlaps
             const words1 = val1.toLowerCase().split(/[,\s]+/).filter(w => w.length > 2);
             const words2 = val2.toLowerCase().split(/[,\s]+/).filter(w => w.length > 2);
             
@@ -745,13 +705,11 @@ VALUES ASSESSMENT: Independence, Creativity, Helping
             const user2 = users[userIndex2];
             const comparison = calculateOverlap(user1, user2);
             
-            // Find existing group or create new one
             let existingGroup = tournamentGroups.find(group => 
                 group.members.some(member => member.email === user1.email || member.email === user2.email)
             );
             
             if (existingGroup) {
-                // Add to existing group if not already there
                 if (!existingGroup.members.some(m => m.email === user1.email)) {
                     existingGroup.members.push(user1);
                 }
@@ -759,7 +717,6 @@ VALUES ASSESSMENT: Independence, Creativity, Helping
                     existingGroup.members.push(user2);
                 }
             } else {
-                // Create new group
                 tournamentGroups.push({
                     id: Date.now(),
                     members: [user1, user2],
@@ -801,7 +758,6 @@ VALUES ASSESSMENT: Independence, Creativity, Helping
                     break;
             }
             
-            // Simple grouping algorithm - can be improved
             const availableUsers = users.filter(user => 
                 [user.skills, user.values, user.interests, user.personality, user.gamingCharacter].filter(x => x).length >= 4
             );
@@ -811,10 +767,8 @@ VALUES ASSESSMENT: Independence, Creativity, Helping
                 return;
             }
             
-            // Clear existing auto-generated groups
             tournamentGroups = tournamentGroups.filter(group => !group.autoGenerated);
             
-            // Create balanced groups
             for (let i = 0; i < availableUsers.length; i += groupSize) {
                 const groupMembers = availableUsers.slice(i, i + groupSize);
                 if (groupMembers.length === groupSize) {
@@ -882,7 +836,7 @@ VALUES ASSESSMENT: Independence, Creativity, Helping
             tournamentGroups.forEach((group, index) => {
                 discordText += `**Group ${index + 1}** ${group.type ? `(${group.type})` : ''}\n`;
                 group.members.forEach(member => {
-                    const memberInfo = member.email.split('@')[0]; // Use username part of email
+                    const memberInfo = member.email.split('@')[0];
                     const personality = member.personality || 'Unknown';
                     const gamingType = member.gamingCharacter ? member.gamingCharacter.split('|')[0] : 'Unknown';
                     discordText += `• ${memberInfo} - ${personality} | ${gamingType}\n`;
