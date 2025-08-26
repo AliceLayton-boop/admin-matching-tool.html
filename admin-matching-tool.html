@@ -253,9 +253,14 @@ VALUES ASSESSMENT: Independence, Creativity, Helping
                 return;
             }
 
+            // Add debug logging
+            console.log('Parsing email content:', emailContent);
+
             try {
                 const userData = extractUserData(emailContent);
-                if (userData) {
+                console.log('Extracted user data:', userData);
+                
+                if (userData && userData.email) {
                     // Check if user already exists
                     const existingIndex = users.findIndex(user => user.email === userData.email);
                     if (existingIndex !== -1) {
@@ -270,24 +275,40 @@ VALUES ASSESSMENT: Independence, Creativity, Helping
                     updateStats();
                     document.getElementById('emailInput').value = '';
                 } else {
-                    alert('Could not parse email. Please check the format.');
+                    alert('Could not parse email. Please check the format.\n\nExpected format should include:\n- Email address\n- Completion date\n- Assessment results');
+                    console.error('Failed to extract user data:', userData);
                 }
             } catch (error) {
                 console.error('Parse error:', error);
-                alert('Error parsing email: ' + error.message);
+                alert('Error parsing email: ' + error.message + '\n\nCheck the browser console (F12) for more details.');
             }
         }
 
         function extractUserData(emailContent) {
-            // Extract email address (we'll need to get this from the recipient)
-            const emailMatch = emailContent.match(/([a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,})/);
-            const email = emailMatch ? emailMatch[1] : `user${users.length + 1}@example.com`;
+            console.log('Starting extraction...');
+            
+            // Extract email address - handle your specific format
+            // Look for email in parentheses first: "Alice Layton (email@domain.com)"
+            let emailMatch = emailContent.match(/\(([a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,})\)/);
+            
+            // If not found, look for any email address
+            if (!emailMatch) {
+                emailMatch = emailContent.match(/([a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,})/);
+            }
+            
+            const email = emailMatch ? emailMatch[1] : null;
+            console.log('Extracted email:', email);
+            
+            if (!email) {
+                throw new Error('No email address found in the content');
+            }
 
             // Extract completion date
             const dateMatch = emailContent.match(/Completed:\s*([0-9\/]+)/);
             const completionDate = dateMatch ? dateMatch[1] : new Date().toLocaleDateString();
+            console.log('Extracted date:', completionDate);
 
-            // Extract assessments
+            // Extract assessments with improved error handling
             const data = {
                 email: email,
                 completionDate: completionDate,
@@ -300,13 +321,48 @@ VALUES ASSESSMENT: Independence, Creativity, Helping
                 religiousCentrality: extractAssessment(emailContent, 'RELIGIOUS CENTRALITY ASSESSMENT')
             };
 
+            console.log('Final extracted data:', data);
+
+            // Validate that we got at least some assessment data
+            const hasData = Object.values(data).some(value => value && typeof value === 'string' && value.length > 0);
+            if (!hasData) {
+                throw new Error('No assessment data found. Please check the email format.');
+            }
+
             return data;
         }
 
         function extractAssessment(content, assessmentName) {
-            const regex = new RegExp(assessmentName + ':\\s*([^\n\r]+)', 'i');
-            const match = content.match(regex);
-            return match ? match[1].trim() : null;
+            try {
+                // Handle both "ASSESSMENT:" and "ASSESSMENT " formats
+                const regex1 = new RegExp(assessmentName + ':\\s*([^\n\r]+)', 'i');
+                const regex2 = new RegExp(assessmentName + '\\s+([^\n\r]+)', 'i');
+                
+                let match = content.match(regex1);
+                if (!match) {
+                    match = content.match(regex2);
+                }
+                
+                const result = match ? match[1].trim() : null;
+                console.log(`${assessmentName}:`, result);
+                return result;
+            } catch (error) {
+                console.error(`Error extracting ${assessmentName}:`, error);
+                return null;
+            }
+        }
+
+        // Add this helper function for debugging
+        function testParseEmail() {
+            console.log("Testing parseEmail...");
+            const element = document.getElementById('emailInput');
+            console.log("emailInput element:", element);
+            if (element) {
+                console.log("Element exists:", !!element);
+                console.log("Current value:", element.value);
+            } else {
+                console.log("Element not found!");
+            }
         }
 
         function updateUserTable() {
