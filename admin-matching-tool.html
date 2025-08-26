@@ -12,7 +12,7 @@
             background-color: #f5f5f5;
         }
         .container {
-            max-width: 1200px;
+            max-width: 1400px;
             margin: 0 auto;
             background: white;
             border-radius: 10px;
@@ -64,16 +64,19 @@
             width: 100%;
             border-collapse: collapse;
             margin: 20px 0;
+            font-size: 12px;
         }
         .user-table th, .user-table td {
             border: 1px solid #ddd;
-            padding: 12px;
+            padding: 8px;
             text-align: left;
+            vertical-align: top;
         }
         .user-table th {
             background: #f8f9fa;
             font-weight: bold;
             color: #5C697A;
+            font-size: 11px;
         }
         .user-table tr:hover {
             background: #f5f5f5;
@@ -139,15 +142,20 @@
             font-weight: bold;
             color: #CB6335;
         }
+        .assessment-data {
+            max-width: 120px;
+            word-wrap: break-word;
+            font-size: 11px;
+        }
     </style>
 </head>
 <body>
     <div class="container">
-        <h1>🎮 A Friendly Game - Admin Matching Tool</h1>
+        <h1>A Friendly Game - Admin Matching Tool</h1>
         
         <!-- Email Input Section -->
         <div class="section">
-            <h2>📧 Add User Data</h2>
+            <h2>Add User Data</h2>
             <p>Paste the complete email content from a user's assessment submission:</p>
             <textarea id="emailInput" placeholder="Paste email content here...
 
@@ -159,13 +167,13 @@ SKILLS ASSESSMENT: Brainstorming, Disrupting the status quo, Seeing the subtext
 VALUES ASSESSMENT: Independence, Creativity, Helping
 ..."></textarea>
             <br>
-            <button onclick="parseEmail()">📝 Add User</button>
-            <button onclick="clearInput()">🗑️ Clear Input</button>
+            <button onclick="parseEmail()">Add User</button>
+            <button onclick="clearInput()">Clear Input</button>
         </div>
 
         <!-- User Database Section -->
         <div class="section">
-            <h2>👥 User Database</h2>
+            <h2>User Database</h2>
             <div class="stats" id="statsContainer">
                 <div class="stat-card">
                     <div class="stat-number" id="totalUsers">0</div>
@@ -182,28 +190,33 @@ VALUES ASSESSMENT: Independence, Creativity, Helping
             </div>
             
             <p>Click on users to select them for comparison:</p>
-            <table class="user-table" id="userTable">
-                <thead>
-                    <tr>
-                        <th>Email</th>
-                        <th>Date</th>
-                        <th>Skills</th>
-                        <th>Values</th>
-                        <th>Personality</th>
-                        <th>Gaming Type</th>
-                        <th>Complete</th>
-                        <th>Actions</th>
-                    </tr>
-                </thead>
-                <tbody id="userTableBody">
-                    <!-- Users will be populated here -->
-                </tbody>
-            </table>
+            <div style="overflow-x: auto;">
+                <table class="user-table" id="userTable">
+                    <thead>
+                        <tr>
+                            <th>Email</th>
+                            <th>Date</th>
+                            <th>Skills</th>
+                            <th>Values</th>
+                            <th>Interest</th>
+                            <th>Personality</th>
+                            <th>Gaming Type</th>
+                            <th>Political</th>
+                            <th>Religious</th>
+                            <th>Complete</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody id="userTableBody">
+                        <!-- Users will be populated here -->
+                    </tbody>
+                </table>
+            </div>
         </div>
 
         <!-- Comparison Section -->
         <div class="section" id="comparisonSection" style="display: none;">
-            <h2>🔍 User Comparison</h2>
+            <h2>User Comparison</h2>
             <div id="comparisonContent">
                 <!-- Comparison results will appear here -->
             </div>
@@ -211,7 +224,7 @@ VALUES ASSESSMENT: Independence, Creativity, Helping
 
         <!-- Tournament Planning Section -->
         <div class="section">
-            <h2>🎮 Tournament Grouping</h2>
+            <h2>Tournament Grouping</h2>
             <div id="tournamentGroups">
                 <p>Create balanced groups for Discord tournaments based on compatibility:</p>
                 <div style="margin: 15px 0;">
@@ -222,7 +235,7 @@ VALUES ASSESSMENT: Independence, Creativity, Helping
                         <option value="6player">6-Player Groups</option>
                         <option value="custom">Custom Size</option>
                     </select>
-                    <button onclick="generateTournamentGroups()" style="margin-left: 10px;">🎲 Auto-Group Users</button>
+                    <button onclick="generateTournamentGroups()" style="margin-left: 10px;">Auto-Group Users</button>
                 </div>
                 <div id="groupResults"></div>
             </div>
@@ -230,12 +243,12 @@ VALUES ASSESSMENT: Independence, Creativity, Helping
 
         <!-- Export Section -->
         <div class="section export-section">
-            <h2>📊 Export Data</h2>
+            <h2>Export Data</h2>
             <p>Export your user data for Google Sheets, Discord planning, or further analysis:</p>
-            <button onclick="exportToCSV()">📋 Download CSV</button>
-            <button onclick="exportToJSON()">💾 Download JSON</button>
-            <button onclick="exportDiscordFormat()">🎮 Discord Tournament List</button>
-            <button onclick="showGoogleSheetsFormat()">📈 Google Sheets Format</button>
+            <button onclick="exportToCSV()">Download CSV</button>
+            <button onclick="exportToJSON()">Download JSON</button>
+            <button onclick="exportDiscordFormat()">Discord Tournament List</button>
+            <button onclick="showGoogleSheetsFormat()">Google Sheets Format</button>
             <div id="exportPreview" style="margin-top: 20px;"></div>
         </div>
     </div>
@@ -253,7 +266,6 @@ VALUES ASSESSMENT: Independence, Creativity, Helping
                 return;
             }
 
-            // Add debug logging
             console.log('Parsing email content:', emailContent);
 
             try {
@@ -288,7 +300,6 @@ VALUES ASSESSMENT: Independence, Creativity, Helping
             console.log('Starting extraction...');
             
             // Extract email address - handle your specific format
-            // Look for email in parentheses first: "Alice Layton (email@domain.com)"
             let emailMatch = emailContent.match(/\(([a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,})\)/);
             
             // If not found, look for any email address
@@ -352,19 +363,6 @@ VALUES ASSESSMENT: Independence, Creativity, Helping
             }
         }
 
-        // Add this helper function for debugging
-        function testParseEmail() {
-            console.log("Testing parseEmail...");
-            const element = document.getElementById('emailInput');
-            console.log("emailInput element:", element);
-            if (element) {
-                console.log("Element exists:", !!element);
-                console.log("Current value:", element.value);
-            } else {
-                console.log("Element not found!");
-            }
-        }
-
         function updateUserTable() {
             const tbody = document.getElementById('userTableBody');
             tbody.innerHTML = '';
@@ -373,18 +371,26 @@ VALUES ASSESSMENT: Independence, Creativity, Helping
                 const row = document.createElement('tr');
                 row.onclick = () => selectUser(index);
                 
-                const completionCount = [user.skills, user.values, user.interests, user.personality, user.gamingCharacter].filter(x => x).length;
-                const isComplete = completionCount === 5;
+                // Count required assessments (5 total)
+                const requiredCount = [user.skills, user.values, user.interests, user.personality, user.gamingCharacter].filter(x => x).length;
+                const isComplete = requiredCount === 5;
+                
+                // Count optional assessments
+                const optionalCount = [user.political, user.religiousCentrality].filter(x => x).length;
+                const totalCount = requiredCount + optionalCount;
                 
                 row.innerHTML = `
-                    <td>${user.email}</td>
+                    <td class="assessment-data">${user.email}</td>
                     <td>${user.completionDate}</td>
-                    <td>${user.skills ? '✅' : '❌'}</td>
-                    <td>${user.values ? '✅' : '❌'}</td>
+                    <td class="assessment-data">${user.skills ? user.skills : 'Missing'}</td>
+                    <td class="assessment-data">${user.values ? user.values : 'Missing'}</td>
+                    <td class="assessment-data">${user.interests ? user.interests : 'Missing'}</td>
                     <td>${user.personality || 'Missing'}</td>
-                    <td>${user.gamingCharacter ? user.gamingCharacter.split('|')[0].trim() : 'Missing'}</td>
-                    <td>${isComplete ? '✅ Complete' : `📊 ${completionCount}/5`}</td>
-                    <td><button onclick="event.stopPropagation(); removeUser(${index})">🗑️</button></td>
+                    <td class="assessment-data">${user.gamingCharacter ? user.gamingCharacter.split('|')[0].trim() : 'Missing'}</td>
+                    <td class="assessment-data">${user.political ? user.political : '-'}</td>
+                    <td class="assessment-data">${user.religiousCentrality ? user.religiousCentrality : '-'}</td>
+                    <td>${isComplete ? 'Complete' : `${requiredCount}/5`} ${optionalCount > 0 ? `(+${optionalCount})` : ''}</td>
+                    <td><button onclick="event.stopPropagation(); removeUser(${index})" style="padding: 5px 8px; font-size: 12px;">Remove</button></td>
                 `;
                 
                 if (selectedUsers.includes(index)) {
@@ -435,23 +441,23 @@ VALUES ASSESSMENT: Independence, Creativity, Helping
             document.getElementById('comparisonSection').style.display = 'block';
             document.getElementById('comparisonContent').innerHTML = `
                 <div class="comparison">
-                    <h3>🔍 Comparing ${user1.email} vs ${user2.email}</h3>
+                    <h3>Comparing ${user1.email} vs ${user2.email}</h3>
                     <div class="overlap-score">Overall Compatibility: ${comparison.overallScore}%</div>
                     
-                    <h4>📊 Assessment Breakdown:</h4>
+                    <h4>Assessment Breakdown:</h4>
                     ${generateComparisonHTML(comparison)}
                     
-                    <h4>💡 Matching Insights:</h4>
+                    <h4>Matching Insights:</h4>
                     <ul>
                         ${comparison.insights.map(insight => `<li>${insight}</li>`).join('')}
                     </ul>
                     
                     <div style="margin-top: 20px; text-align: center;">
                         <button onclick="addToTournamentGroup(${selectedUsers[0]}, ${selectedUsers[1]})">
-                            🎮 Add to Tournament Group
+                            Add to Tournament Group
                         </button>
                         <button onclick="saveMatchData(${selectedUsers[0]}, ${selectedUsers[1]})">
-                            💾 Save This Match for Analysis
+                            Save This Match for Analysis
                         </button>
                     </div>
                 </div>
@@ -491,9 +497,9 @@ VALUES ASSESSMENT: Independence, Creativity, Helping
 
                     // Generate insights
                     if (score >= 80) {
-                        insights.push(`🔥 Strong ${assessment.name.toLowerCase()} alignment (${score}%)`);
+                        insights.push(`Strong ${assessment.name.toLowerCase()} alignment (${score}%)`);
                     } else if (score <= 20) {
-                        insights.push(`⚠️ Very different ${assessment.name.toLowerCase()} - could be complementary or challenging`);
+                        insights.push(`Very different ${assessment.name.toLowerCase()} - could be complementary or challenging`);
                     }
                 } else {
                     details.push({
@@ -506,7 +512,7 @@ VALUES ASSESSMENT: Independence, Creativity, Helping
                 }
             });
 
-            // Add optional assessments
+            // Add optional assessments - these are IMPORTANT for matching
             if (user1.political && user2.political) {
                 const politicalScore = user1.political === user2.political ? 100 : 0;
                 details.push({
@@ -517,17 +523,48 @@ VALUES ASSESSMENT: Independence, Creativity, Helping
                     status: getMatchStatus(politicalScore)
                 });
                 if (politicalScore === 100) {
-                    insights.push(`🏛️ Same political alignment`);
+                    insights.push(`Same political alignment: ${user1.political}`);
+                } else {
+                    insights.push(`Different political views: ${user1.political} vs ${user2.political}`);
                 }
+            } else if (user1.political || user2.political) {
+                details.push({
+                    name: 'Political Views',
+                    user1: user1.political || 'Not provided',
+                    user2: user2.political || 'Not provided',
+                    score: null,
+                    status: 'missing'
+                });
+                insights.push('Political compatibility unclear - only one user provided political data');
             }
 
             if (user1.religiousCentrality && user2.religiousCentrality) {
+                // Extract numeric values for religious centrality comparison
+                const religiousVal1 = parseFloat(user1.religiousCentrality.match(/[\d.]+/)?.[0] || 0);
+                const religiousVal2 = parseFloat(user2.religiousCentrality.match(/[\d.]+/)?.[0] || 0);
+                const religiousDiff = Math.abs(religiousVal1 - religiousVal2);
+                const religiousScore = Math.max(0, Math.round(100 - (religiousDiff * 25))); // Scale difference
+                
                 details.push({
                     name: 'Religious Centrality',
                     user1: user1.religiousCentrality,
                     user2: user2.religiousCentrality,
+                    score: religiousScore,
+                    status: getMatchStatus(religiousScore)
+                });
+                
+                if (religiousScore >= 80) {
+                    insights.push(`Similar religious involvement levels (${religiousScore}% match)`);
+                } else if (religiousScore <= 40) {
+                    insights.push(`Very different religious involvement levels - could be significant`);
+                }
+            } else if (user1.religiousCentrality || user2.religiousCentrality) {
+                details.push({
+                    name: 'Religious Centrality',
+                    user1: user1.religiousCentrality || 'Not provided',
+                    user2: user2.religiousCentrality || 'Not provided',
                     score: null,
-                    status: 'info'
+                    status: 'missing'
                 });
             }
 
@@ -664,7 +701,7 @@ VALUES ASSESSMENT: Independence, Creativity, Helping
             const headers = ['Email', 'Completion Date', 'Skills', 'Values', 'Interests', 'Personality', 'Gaming Character', 'Political', 'Religious Centrality'];
             const preview = document.getElementById('exportPreview');
             
-            let html = '<h3>📋 Copy this data to Google Sheets:</h3>';
+            let html = '<h3>Copy this data to Google Sheets:</h3>';
             html += '<textarea style="width: 100%; height: 300px; font-family: monospace;">';
             html += headers.join('\t') + '\n';
             
@@ -787,7 +824,7 @@ VALUES ASSESSMENT: Independence, Creativity, Helping
                 return;
             }
             
-            let html = '<h4>🎮 Tournament Groups:</h4>';
+            let html = '<h4>Tournament Groups:</h4>';
             tournamentGroups.forEach((group, index) => {
                 html += `
                     <div style="background: #f8f9fa; padding: 15px; margin: 10px 0; border-radius: 8px; border-left: 4px solid #CB6335;">
@@ -826,7 +863,7 @@ VALUES ASSESSMENT: Independence, Creativity, Helping
                 return;
             }
             
-            let discordText = `**🎮 A Friendly Game Tournament Groups - ${new Date().toLocaleDateString()}**\n\n`;
+            let discordText = `**A Friendly Game Tournament Groups - ${new Date().toLocaleDateString()}**\n\n`;
             
             tournamentGroups.forEach((group, index) => {
                 discordText += `**Group ${index + 1}** ${group.type ? `(${group.type})` : ''}\n`;
@@ -843,10 +880,10 @@ VALUES ASSESSMENT: Independence, Creativity, Helping
             
             const preview = document.getElementById('exportPreview');
             preview.innerHTML = `
-                <h3>📱 Discord Tournament Groups Format:</h3>
+                <h3>Discord Tournament Groups Format:</h3>
                 <textarea style="width: 100%; height: 300px; font-family: monospace;">${discordText}</textarea>
                 <p><strong>Instructions:</strong> Copy the text above and paste it into your Discord tournament channel.</p>
-                <button onclick="navigator.clipboard.writeText('${discordText.replace(/'/g, "\\'")}')">📋 Copy to Clipboard</button>
+                <button onclick="navigator.clipboard.writeText('${discordText.replace(/'/g, "\\'")}')">Copy to Clipboard</button>
             `;
         }
 
