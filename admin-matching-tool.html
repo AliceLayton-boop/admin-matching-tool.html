@@ -478,6 +478,7 @@ VALUES ASSESSMENT: Independence, Creativity, Helping
             const details = [];
             const insights = [];
 
+            // Process required assessments
             assessments.forEach(assessment => {
                 const val1 = user1[assessment.key];
                 const val2 = user2[assessment.key];
@@ -512,7 +513,8 @@ VALUES ASSESSMENT: Independence, Creativity, Helping
                 }
             });
 
-            // Add optional assessments - these are IMPORTANT for matching
+            // Handle optional assessments - ONLY compare if BOTH users completed them
+            // Political assessment
             if (user1.political && user2.political) {
                 const politicalScore = user1.political === user2.political ? 100 : 0;
                 details.push({
@@ -527,21 +529,27 @@ VALUES ASSESSMENT: Independence, Creativity, Helping
                 } else {
                     insights.push(`Different political views: ${user1.political} vs ${user2.political}`);
                 }
-            } else if (user1.political || user2.political) {
+            } else {
+                // Show for reference but don't affect compatibility score
                 details.push({
                     name: 'Political Views',
-                    user1: user1.political || 'Not provided',
-                    user2: user2.political || 'Not provided',
+                    user1: user1.political || 'Not completed',
+                    user2: user2.political || 'Not completed',
                     score: null,
                     status: 'missing'
                 });
-                insights.push('Political compatibility unclear - only one user provided political data');
+                if (user1.political && !user2.political) {
+                    insights.push(`${user1.email} completed political assessment, ${user2.email} did not`);
+                } else if (!user1.political && user2.political) {
+                    insights.push(`${user2.email} completed political assessment, ${user1.email} did not`);
+                }
             }
 
+            // Religious centrality assessment
             if (user1.religiousCentrality && user2.religiousCentrality) {
                 // Extract numeric values for religious centrality comparison
                 const religiousVal1 = parseFloat(user1.religiousCentrality.match(/[\d.]+/)?.[0] || 0);
-                const religiousVal2 = parseFloat(user2.religiousCentrality.match(/[\d.]+/)?.[0] || 0);
+                const religiousVal2 = parseFloat(user2.religiousCentrality.match /[\d.]+/)?.[0] || 0);
                 const religiousDiff = Math.abs(religiousVal1 - religiousVal2);
                 const religiousScore = Math.max(0, Math.round(100 - (religiousDiff * 25))); // Scale difference
                 
@@ -558,14 +566,20 @@ VALUES ASSESSMENT: Independence, Creativity, Helping
                 } else if (religiousScore <= 40) {
                     insights.push(`Very different religious involvement levels - could be significant`);
                 }
-            } else if (user1.religiousCentrality || user2.religiousCentrality) {
+            } else {
+                // Show for reference but don't affect compatibility score
                 details.push({
                     name: 'Religious Centrality',
-                    user1: user1.religiousCentrality || 'Not provided',
-                    user2: user2.religiousCentrality || 'Not provided',
+                    user1: user1.religiousCentrality || 'Not completed',
+                    user2: user2.religiousCentrality || 'Not completed',
                     score: null,
                     status: 'missing'
                 });
+                if (user1.religiousCentrality && !user2.religiousCentrality) {
+                    insights.push(`${user1.email} completed religious assessment, ${user2.email} did not`);
+                } else if (!user1.religiousCentrality && user2.religiousCentrality) {
+                    insights.push(`${user2.email} completed religious assessment, ${user1.email} did not`);
+                }
             }
 
             return {
