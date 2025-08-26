@@ -549,7 +549,7 @@ VALUES ASSESSMENT: Independence, Creativity, Helping
             if (user1.religiousCentrality && user2.religiousCentrality) {
                 // Extract numeric values for religious centrality comparison
                 const religiousVal1 = parseFloat(user1.religiousCentrality.match(/[\d.]+/)?.[0] || 0);
-                const religiousVal2 = parseFloat(user2.religiousCentrality.match /[\d.]+/)?.[0] || 0);
+                const religiousVal2 = parseFloat(user2.religiousCentrality.match(/[\d.]+/)?.[0] || 0);
                 const religiousDiff = Math.abs(religiousVal1 - religiousVal2);
                 const religiousScore = Math.max(0, Math.round(100 - (religiousDiff * 25))); // Scale difference
                 
