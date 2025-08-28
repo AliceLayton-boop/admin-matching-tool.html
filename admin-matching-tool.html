@@ -246,7 +246,22 @@
     </div>
 
     <script>
-        let users = [];
+        // Load existing users from localStorage on page startup
+let users = JSON.parse(localStorage.getItem('adminToolUsers') || '[]');
+
+// Function to load users when page starts
+function initializeAdminTool() {
+    console.log('Loading saved users...');
+    users = JSON.parse(localStorage.getItem('adminToolUsers') || '[]');
+    if (users.length > 0) {
+        console.log('Found', users.length, 'saved users');
+        updateUserTable();
+        updateStats();
+    }
+}
+
+// Run initialization when page loads
+document.addEventListener('DOMContentLoaded', initializeAdminTool);
         let selectedUsers = [];
         let tournamentGroups = [];
         let savedMatches = [];
