@@ -161,6 +161,7 @@
             <br>
             <button onclick="parseEmail()">Add User</button>
             <button onclick="clearInput()">Clear Input</button>
+            <button onclick="clearAllData()" style="background: #dc3545;">Clear All Saved Data</button>
         </div>
 
         <!-- User Database Section -->
@@ -246,117 +247,104 @@
     </div>
 
     <script>
-        // Load existing users from localStorage on page startup
-let users = JSON.parse(localStorage.getItem('adminToolUsers') || '[]');
-
-// Function to load users when page starts
-function initializeAdminTool() {
-    console.log('Loading saved users...');
-    users = JSON.parse(localStorage.getItem('adminToolUsers') || '[]');
-    if (users.length > 0) {
-        console.log('Found', users.length, 'saved users');
-        updateUserTable();
-        updateStats();
-    }
-}
-
-// Run initialization when page loads
-document.addEventListener('DOMContentLoaded', initializeAdminTool);
+        // Global variables
+        let users = [];
         let selectedUsers = [];
         let tournamentGroups = [];
         let savedMatches = [];
-function parseEmail() {
-    console.log('parseEmail function called');
-    
-    // Get the email input element with error checking
-    const emailInputElement = document.getElementById('emailInput');
-    if (!emailInputElement) {
-        console.error('emailInput element not found');
-        alert('Error: Cannot find email input field. Please refresh the page.');
-        return;
-    }
-    
-    const emailContent = emailInputElement.value.trim();
-    if (!emailContent) {
-        alert('Please paste an email first!');
-        return;
-    }
 
-    console.log('Email content:', emailContent);
+        // Initialize on page load
+        document.addEventListener('DOMContentLoaded', function() {
+            console.log('Initializing admin tool...');
+            loadUsersFromStorage();
+        });
 
-    try {
-        const userData = extractUserData(emailContent);
-        console.log('Extracted user data:', userData);
-        
-        if (userData && userData.email) {
-            // Load existing users from localStorage
+        // Data persistence functions
+        function saveUsersToStorage() {
+            localStorage.setItem('adminToolUsers', JSON.stringify(users));
+            console.log('Users saved to localStorage:', users.length, 'users');
+        }
+
+        function loadUsersFromStorage() {
             const savedUsers = JSON.parse(localStorage.getItem('adminToolUsers') || '[]');
-            
-            // Check if user already exists
-            const existingIndex = savedUsers.findIndex(user => user.email === userData.email);
-            if (existingIndex !== -1) {
-                savedUsers[existingIndex] = userData; // Update existing
-                alert('User updated successfully!');
-            } else {
-                savedUsers.push(userData);
-                alert('User added successfully!');
-            }
-            
-            // Save back to localStorage
-            localStorage.setItem('adminToolUsers', JSON.stringify(savedUsers));
-            users = savedUsers; // Update global users array
-            
+            users = savedUsers;
+            console.log('Users loaded from localStorage:', users.length, 'users');
             updateUserTable();
             updateStats();
-            
-            // Clear input field
-            emailInputElement.value = '';
-            
-        } else {
-            alert('Could not parse email. Please check the format.\n\nExpected format:\nFIND MY PEOPLE DATA COLLECTION COMPLETED\nCompleted: [date]\n=== REQUIRED ASSESSMENTS ===\nSKILLS ASSESSMENT: [results]\nVALUES ASSESSMENT: [results]\n...');
-            console.error('Failed to extract user data:', userData);
         }
-    } catch (error) {
-        console.error('Parse error:', error);
-        alert('Error parsing email: ' + error.message + '\n\nCheck browser console (F12) for details.');
-    }
-}
-    
 
-            console.log('Parsing email content:', emailContent);
+        function clearAllData() {
+            if (confirm('Are you sure you want to delete ALL saved user data? This cannot be undone.')) {
+                localStorage.removeItem('adminToolUsers');
+                users = [];
+                selectedUsers = [];
+                updateUserTable();
+                updateStats();
+                document.getElementById('comparisonSection').style.display = 'none';
+                alert('All data cleared successfully!');
+            }
+        }
+
+        // Email parsing functions
+        function parseEmail() {
+            console.log('parseEmail function called');
+            
+            const emailInputElement = document.getElementById('emailInput');
+            if (!emailInputElement) {
+                console.error('emailInput element not found');
+                alert('Error: Cannot find email input field. Please refresh the page.');
+                return;
+            }
+            
+            const emailContent = emailInputElement.value.trim();
+            if (!emailContent) {
+                alert('Please paste an email first!');
+                return;
+            }
+
+            console.log('Email content:', emailContent);
 
             try {
                 const userData = extractUserData(emailContent);
                 console.log('Extracted user data:', userData);
                 
                 if (userData && userData.email) {
+                    // Check if user already exists
                     const existingIndex = users.findIndex(user => user.email === userData.email);
                     if (existingIndex !== -1) {
-                        users[existingIndex] = userData;
+                        users[existingIndex] = userData; // Update existing
                         alert('User updated successfully!');
                     } else {
                         users.push(userData);
                         alert('User added successfully!');
                     }
                     
+                    // Save to localStorage
+                    saveUsersToStorage();
+                    
                     updateUserTable();
                     updateStats();
-                    document.getElementById('emailInput').value = '';
+                    
+                    // Clear input field
+                    emailInputElement.value = '';
+                    
                 } else {
-                    alert('Could not parse email. Please check the format.');
+                    alert('Could not parse email. Please check the format.\n\nExpected format:\nFIND MY PEOPLE DATA COLLECTION COMPLETED\nCompleted: [date]\n=== REQUIRED ASSESSMENTS ===\nSKILLS ASSESSMENT: [results]\nVALUES ASSESSMENT: [results]\n...');
                     console.error('Failed to extract user data:', userData);
                 }
             } catch (error) {
                 console.error('Parse error:', error);
-                alert('Error parsing email: ' + error.message);
+                alert('Error parsing email: ' + error.message + '\n\nCheck browser console (F12) for details.');
             }
         }
 
         function extractUserData(emailContent) {
             console.log('Starting extraction...');
             
+            // Extract email address - handle your specific format
             let emailMatch = emailContent.match(/\(([a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,})\)/);
             
+            // If not found, look for any email address
             if (!emailMatch) {
                 emailMatch = emailContent.match(/([a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,})/);
             }
@@ -368,10 +356,12 @@ function parseEmail() {
                 throw new Error('No email address found in the content');
             }
 
+            // Extract completion date
             const dateMatch = emailContent.match(/Completed:\s*([0-9\/]+)/);
             const completionDate = dateMatch ? dateMatch[1] : new Date().toLocaleDateString();
             console.log('Extracted date:', completionDate);
 
+            // Extract assessments with improved error handling
             const data = {
                 email: email,
                 completionDate: completionDate,
@@ -386,6 +376,7 @@ function parseEmail() {
 
             console.log('Final extracted data:', data);
 
+            // Validate that we got at least some assessment data
             const hasData = Object.values(data).some(value => value && typeof value === 'string' && value.length > 0);
             if (!hasData) {
                 throw new Error('No assessment data found. Please check the email format.');
@@ -396,6 +387,7 @@ function parseEmail() {
 
         function extractAssessment(content, assessmentName) {
             try {
+                // Handle both "ASSESSMENT:" and "ASSESSMENT " formats
                 const regex1 = new RegExp(assessmentName + ':\\s*([^\n\r]+)', 'i');
                 const regex2 = new RegExp(assessmentName + '\\s+([^\n\r]+)', 'i');
                 
@@ -413,8 +405,18 @@ function parseEmail() {
             }
         }
 
+        function clearInput() {
+            const emailInput = document.getElementById('emailInput');
+            if (emailInput) {
+                emailInput.value = '';
+            }
+        }
+
+        // Table and display functions
         function updateUserTable() {
             const tbody = document.getElementById('userTableBody');
+            if (!tbody) return;
+            
             tbody.innerHTML = '';
 
             users.forEach((user, index) => {
@@ -469,6 +471,7 @@ function parseEmail() {
 
         function removeUser(index) {
             users.splice(index, 1);
+            saveUsersToStorage(); // Save after removal
             selectedUsers = selectedUsers.filter(i => i !== index).map(i => i > index ? i - 1 : i);
             updateUserTable();
             updateStats();
@@ -477,20 +480,43 @@ function parseEmail() {
             }
         }
 
+        function updateStats() {
+            const total = users.length;
+            const complete = users.filter(user => 
+                [user.skills, user.values, user.interests, user.personality, user.gamingCharacter].filter(x => x).length === 5
+            ).length;
+            
+            const totalAssessments = users.reduce((sum, user) => {
+                return sum + [user.skills, user.values, user.interests, user.personality, user.gamingCharacter].filter(x => x).length;
+            }, 0);
+            
+            const avgCompletion = total > 0 ? Math.round((totalAssessments / (total * 5)) * 100) : 0;
+
+            const totalElement = document.getElementById('totalUsers');
+            const completeElement = document.getElementById('completeUsers');
+            const avgElement = document.getElementById('avgCompletion');
+            
+            if (totalElement) totalElement.textContent = total;
+            if (completeElement) completeElement.textContent = complete;
+            if (avgElement) avgElement.textContent = avgCompletion + '%';
+        }
+
+        // NEW IMPROVED MATCHING ALGORITHM - Only counts meaningful overlap
         function showComparison() {
             const user1 = users[selectedUsers[0]];
             const user2 = users[selectedUsers[1]];
             
-            const comparison = calculateOverlap(user1, user2);
+            const comparison = calculateMeaningfulOverlap(user1, user2);
             
             document.getElementById('comparisonSection').style.display = 'block';
             document.getElementById('comparisonContent').innerHTML = `
                 <div class="comparison">
                     <h3>Comparing ${user1.email} vs ${user2.email}</h3>
-                    <div class="overlap-score">Overall Compatibility: ${comparison.overallScore}%</div>
+                    <div class="overlap-score">Meaningful Compatibility: ${comparison.overallCompatibility}%</div>
+                    <p><strong>${comparison.note}</strong></p>
                     
                     <h4>Assessment Breakdown:</h4>
-                    ${generateComparisonHTML(comparison)}
+                    ${generateMeaningfulComparisonHTML(comparison)}
                     
                     <h4>Matching Insights:</h4>
                     <ul>
@@ -509,122 +535,109 @@ function parseEmail() {
             `;
         }
 
-        function calculateOverlap(user1, user2) {
-            const assessments = [
-                { name: 'Skills', key: 'skills', weight: 20 },
-                { name: 'Values', key: 'values', weight: 25 },
-                { name: 'Interests', key: 'interests', weight: 20 },
-                { name: 'Personality', key: 'personality', weight: 15 },
-                { name: 'Gaming Character', key: 'gamingCharacter', weight: 20 }
+        // NEW MATCHING ALGORITHM - Excludes zero-overlap assessments
+        function calculateMeaningfulOverlap(user1, user2) {
+            const assessmentFields = [
+                { name: 'Skills', key: 'skills' },
+                { name: 'Values', key: 'values' },
+                { name: 'Interests', key: 'interests' },
+                { name: 'Personality', key: 'personality' },
+                { name: 'Gaming Character', key: 'gamingCharacter' },
+                { name: 'Political Views', key: 'political' },
+                { name: 'Religious Centrality', key: 'religiousCentrality' }
             ];
-
-            let totalScore = 0;
-            let totalWeight = 0;
-            const details = [];
+            
+            let meaningfulOverlapCount = 0;
+            let totalMeaningfulScore = 0;
+            const detailBreakdown = {};
             const insights = [];
-
-            assessments.forEach(assessment => {
-                const val1 = user1[assessment.key];
-                const val2 = user2[assessment.key];
+            
+            assessmentFields.forEach(field => {
+                const val1 = user1[field.key];
+                const val2 = user2[field.key];
                 
-                if (val1 && val2) {
-                    const score = calculateAssessmentScore(val1, val2, assessment.key);
-                    totalScore += score * assessment.weight;
-                    totalWeight += assessment.weight;
+                // Calculate compatibility if BOTH users have data for this assessment
+                if (val1 && val2 && val1.trim() !== '' && val2.trim() !== '') {
+                    const compatibility = calculateFieldCompatibility(val1, val2, field.key);
                     
-                    details.push({
-                        name: assessment.name,
-                        user1: val1,
-                        user2: val2,
-                        score: score,
-                        status: getMatchStatus(score)
-                    });
-
-                    if (score >= 80) {
-                        insights.push(`Strong ${assessment.name.toLowerCase()} alignment (${score}%)`);
-                    } else if (score <= 20) {
-                        insights.push(`Very different ${assessment.name.toLowerCase()} - could be complementary or challenging`);
+                    // Only include assessments where there IS overlap (>0%)
+                    if (compatibility > 0) {
+                        meaningfulOverlapCount++;
+                        totalMeaningfulScore += compatibility;
+                        detailBreakdown[field.key] = {
+                            name: field.name,
+                            user1: val1,
+                            user2: val2,
+                            compatibility: compatibility,
+                            status: 'overlap'
+                        };
+                        
+                        if (compatibility >= 75) {
+                            insights.push(`Strong ${field.name.toLowerCase()} alignment (${compatibility}%)`);
+                        } else if (compatibility >= 50) {
+                            insights.push(`Good ${field.name.toLowerCase()} compatibility (${compatibility}%)`);
+                        }
+                    } else {
+                        // Both completed but 0% overlap - exclude from average
+                        detailBreakdown[field.key] = {
+                            name: field.name,
+                            user1: val1,
+                            user2: val2,
+                            compatibility: compatibility,
+                            status: 'no-overlap'
+                        };
+                        insights.push(`No ${field.name.toLowerCase()} overlap - different strengths could be complementary`);
                     }
                 } else {
-                    details.push({
-                        name: assessment.name,
-                        user1: val1 || 'Missing',
-                        user2: val2 || 'Missing',
-                        score: null,
+                    // Missing data - exclude from calculation
+                    detailBreakdown[field.key] = {
+                        name: field.name,
+                        user1: val1 || 'Not completed',
+                        user2: val2 || 'Not completed',
+                        compatibility: null,
                         status: 'missing'
-                    });
+                    };
                 }
             });
-
-            // Handle optional assessments - only compare if BOTH users completed them
-            if (user1.political && user2.political) {
-                const politicalScore = user1.political === user2.political ? 100 : 0;
-                details.push({
-                    name: 'Political Views',
-                    user1: user1.political,
-                    user2: user2.political,
-                    score: politicalScore,
-                    status: getMatchStatus(politicalScore)
-                });
-                if (politicalScore === 100) {
-                    insights.push(`Same political alignment: ${user1.political}`);
-                } else {
-                    insights.push(`Different political views: ${user1.political} vs ${user2.political}`);
-                }
-            } else {
-                details.push({
-                    name: 'Political Views',
-                    user1: user1.political || 'Not completed',
-                    user2: user2.political || 'Not completed',
-                    score: null,
-                    status: 'missing'
-                });
-            }
-
-            if (user1.religiousCentrality && user2.religiousCentrality) {
-                const religiousVal1 = parseFloat(user1.religiousCentrality.match(/[\d.]+/)?.[0] || 0);
-                const religiousVal2 = parseFloat(user2.religiousCentrality.match(/[\d.]+/)?.[0] || 0);
-                const religiousDiff = Math.abs(religiousVal1 - religiousVal2);
-                const religiousScore = Math.max(0, Math.round(100 - (religiousDiff * 25)));
-                
-                details.push({
-                    name: 'Religious Centrality',
-                    user1: user1.religiousCentrality,
-                    user2: user2.religiousCentrality,
-                    score: religiousScore,
-                    status: getMatchStatus(religiousScore)
-                });
-                
-                if (religiousScore >= 80) {
-                    insights.push(`Similar religious involvement levels (${religiousScore}% match)`);
-                } else if (religiousScore <= 40) {
-                    insights.push(`Very different religious involvement levels - could be significant`);
-                }
-            } else {
-                details.push({
-                    name: 'Religious Centrality',
-                    user1: user1.religiousCentrality || 'Not completed',
-                    user2: user2.religiousCentrality || 'Not completed',
-                    score: null,
-                    status: 'missing'
-                });
-            }
-
+            
+            // Calculate final compatibility based ONLY on assessments with meaningful overlap
+            const overallCompatibility = meaningfulOverlapCount > 0 
+                ? Math.round(totalMeaningfulScore / meaningfulOverlapCount)
+                : 0;
+            
             return {
-                overallScore: totalWeight > 0 ? Math.round(totalScore / totalWeight) : 0,
-                details: details,
-                insights: insights.length > 0 ? insights : ['No specific insights generated - review individual scores']
+                overallCompatibility: overallCompatibility,
+                meaningfulOverlaps: meaningfulOverlapCount,
+                totalAssessments: assessmentFields.length,
+                breakdown: detailBreakdown,
+                insights: insights.length > 0 ? insights : ['No significant overlaps found'],
+                note: meaningfulOverlapCount > 0 
+                    ? `Based on ${meaningfulOverlapCount} assessments with overlap (excludes 0% matches)`
+                    : 'No meaningful overlap found'
             };
         }
 
-        function calculateAssessmentScore(val1, val2, type) {
-            if (type === 'personality') {
+        function calculateFieldCompatibility(val1, val2, fieldType) {
+            if (!val1 || !val2) return 0;
+            
+            if (fieldType === 'personality') {
                 if (val1 === val2) return 100;
                 const shared = val1.split('').filter((char, i) => char === val2.charAt(i)).length;
                 return Math.round((shared / 4) * 100);
             }
             
-            if (type === 'gamingCharacter') {
+            if (fieldType === 'political') {
+                return val1.toLowerCase().trim() === val2.toLowerCase().trim() ? 100 : 0;
+            }
+            
+            if (fieldType === 'religiousCentrality') {
+                const score1 = parseFloat(val1.match(/[\d.]+/)?.[0] || 0);
+                const score2 = parseFloat(val2.match(/[\d.]+/)?.[0] || 0);
+                const diff = Math.abs(score1 - score2);
+                return Math.max(0, Math.round(100 - (diff * 25)));
+            }
+            
+            if (fieldType === 'gamingCharacter') {
                 const parts1 = val1.split('|').map(s => s.trim());
                 const parts2 = val2.split('|').map(s => s.trim());
                 
@@ -639,6 +652,7 @@ function parseEmail() {
                 return total > 0 ? Math.round((matches / total) * 100) : 0;
             }
             
+            // For skills, values, interests - word-based matching
             const words1 = val1.toLowerCase().split(/[,\s]+/).filter(w => w.length > 2);
             const words2 = val2.toLowerCase().split(/[,\s]+/).filter(w => w.length > 2);
             
@@ -650,49 +664,85 @@ function parseEmail() {
             return totalWords > 0 ? Math.round((commonWords.length / totalWords) * 100) : 0;
         }
 
-        function getMatchStatus(score) {
-            if (score === null) return 'missing';
-            if (score >= 70) return 'match';
-            if (score >= 40) return 'partial';
-            return 'no-match';
+        function generateMeaningfulComparisonHTML(comparison) {
+            return Object.values(comparison.breakdown).map(detail => {
+                let statusClass = '';
+                let statusText = '';
+                
+                if (detail.status === 'overlap') {
+                    if (detail.compatibility >= 70) statusClass = 'match';
+                    else if (detail.compatibility >= 40) statusClass = 'partial';
+                    else statusClass = 'no-match';
+                    statusText = `${detail.compatibility}% match`;
+                } else if (detail.status === 'no-overlap') {
+                    statusClass = 'no-match';
+                    statusText = '0% overlap';
+                } else {
+                    statusClass = 'missing';
+                    statusText = 'Missing data';
+                }
+                
+                return `
+                    <div class="assessment-comparison">
+                        <div class="assessment-item">
+                            <strong>${detail.name}</strong>
+                        </div>
+                        <div class="assessment-item ${statusClass}">
+                            <strong>User 1:</strong> ${detail.user1}
+                        </div>
+                        <div class="assessment-item ${statusClass}">
+                            <strong>User 2:</strong> ${detail.user2}
+                            ${detail.compatibility !== null ? `<br><strong>${statusText}</strong>` : `<br><strong>${statusText}</strong>`}
+                        </div>
+                    </div>
+                `;
+            }).join('');
         }
 
-        function generateComparisonHTML(comparison) {
-            return comparison.details.map(detail => `
-                <div class="assessment-comparison">
-                    <div class="assessment-item">
-                        <strong>${detail.name}</strong>
-                    </div>
-                    <div class="assessment-item ${detail.status}">
-                        <strong>User 1:</strong> ${detail.user1}
-                    </div>
-                    <div class="assessment-item ${detail.status}">
-                        <strong>User 2:</strong> ${detail.user2}
-                        ${detail.score !== null ? `<br><strong>Match: ${detail.score}%</strong>` : ''}
-                    </div>
-                </div>
-            `).join('');
-        }
-
-        function updateStats() {
-            const total = users.length;
-            const complete = users.filter(user => 
-                [user.skills, user.values, user.interests, user.personality, user.gamingCharacter].filter(x => x).length === 5
-            ).length;
+        // Tournament and export functions
+        function addToTournamentGroup(userIndex1, userIndex2) {
+            const user1 = users[userIndex1];
+            const user2 = users[userIndex2];
+            const comparison = calculateMeaningfulOverlap(user1, user2);
             
-            const totalAssessments = users.reduce((sum, user) => {
-                return sum + [user.skills, user.values, user.interests, user.personality, user.gamingCharacter].filter(x => x).length;
-            }, 0);
+            let existingGroup = tournamentGroups.find(group => 
+                group.members.some(member => member.email === user1.email || member.email === user2.email)
+            );
             
-            const avgCompletion = total > 0 ? Math.round((totalAssessments / (total * 5)) * 100) : 0;
-
-            document.getElementById('totalUsers').textContent = total;
-            document.getElementById('completeUsers').textContent = complete;
-            document.getElementById('avgCompletion').textContent = avgCompletion + '%';
+            if (existingGroup) {
+                if (!existingGroup.members.some(m => m.email === user1.email)) {
+                    existingGroup.members.push(user1);
+                }
+                if (!existingGroup.members.some(m => m.email === user2.email)) {
+                    existingGroup.members.push(user2);
+                }
+            } else {
+                tournamentGroups.push({
+                    id: Date.now(),
+                    members: [user1, user2],
+                    compatibility: comparison.overallCompatibility,
+                    created: new Date().toLocaleDateString()
+                });
+            }
+            
+            alert(`Added users to tournament group! (${comparison.overallCompatibility}% compatibility)`);
+            updateTournamentDisplay();
         }
 
-        function clearInput() {
-            document.getElementById('emailInput').value = '';
+        function saveMatchData(userIndex1, userIndex2) {
+            const user1 = users[userIndex1];
+            const user2 = users[userIndex2];
+            const comparison = calculateMeaningfulOverlap(user1, user2);
+            
+            savedMatches.push({
+                user1: user1.email,
+                user2: user2.email,
+                compatibility: comparison.overallCompatibility,
+                details: comparison.breakdown,
+                saved: new Date().toLocaleDateString()
+            });
+            
+            alert('Match data saved for future analysis!');
         }
 
         function exportToCSV() {
@@ -765,51 +815,6 @@ function parseEmail() {
             preview.innerHTML = html;
         }
 
-        function addToTournamentGroup(userIndex1, userIndex2) {
-            const user1 = users[userIndex1];
-            const user2 = users[userIndex2];
-            const comparison = calculateOverlap(user1, user2);
-            
-            let existingGroup = tournamentGroups.find(group => 
-                group.members.some(member => member.email === user1.email || member.email === user2.email)
-            );
-            
-            if (existingGroup) {
-                if (!existingGroup.members.some(m => m.email === user1.email)) {
-                    existingGroup.members.push(user1);
-                }
-                if (!existingGroup.members.some(m => m.email === user2.email)) {
-                    existingGroup.members.push(user2);
-                }
-            } else {
-                tournamentGroups.push({
-                    id: Date.now(),
-                    members: [user1, user2],
-                    compatibility: comparison.overallScore,
-                    created: new Date().toLocaleDateString()
-                });
-            }
-            
-            alert(`Added users to tournament group! (${comparison.overallScore}% compatibility)`);
-            updateTournamentDisplay();
-        }
-
-        function saveMatchData(userIndex1, userIndex2) {
-            const user1 = users[userIndex1];
-            const user2 = users[userIndex2];
-            const comparison = calculateOverlap(user1, user2);
-            
-            savedMatches.push({
-                user1: user1.email,
-                user2: user2.email,
-                compatibility: comparison.overallScore,
-                details: comparison.details,
-                saved: new Date().toLocaleDateString()
-            });
-            
-            alert('Match data saved for future analysis!');
-        }
-
         function generateTournamentGroups() {
             const tournamentType = document.getElementById('tournamentType').value;
             let groupSize = 2;
@@ -852,6 +857,8 @@ function parseEmail() {
 
         function updateTournamentDisplay() {
             const container = document.getElementById('groupResults');
+            if (!container) return;
+            
             if (tournamentGroups.length === 0) {
                 container.innerHTML = '<p>No tournament groups created yet.</p>';
                 return;
@@ -919,10 +926,6 @@ function parseEmail() {
                 <button onclick="navigator.clipboard.writeText('${discordText.replace(/'/g, "\\'")}')">Copy to Clipboard</button>
             `;
         }
-
-        // Initialize
-        updateStats();
-        updateTournamentDisplay();
     </script>
 </body>
 </html>
