@@ -113,9 +113,9 @@
             border-radius: 5px;
             font-size: 14px;
         }
-        .match { background: #d4edda; border-left: 4px solid #28a745; }
+        .overlap { background: #d4edda; border-left: 4px solid #28a745; }
         .partial { background: #fff3cd; border-left: 4px solid #ffc107; }
-        .no-match { background: #f8d7da; border-left: 4px solid #dc3545; }
+        .no-overlap { background: #f8d7da; border-left: 4px solid #dc3545; }
         .missing { background: #e2e3e5; border-left: 4px solid #6c757d; }
         
         .export-section {
@@ -161,7 +161,7 @@
             <br>
             <button onclick="parseEmail()">Add User</button>
             <button onclick="clearInput()">Clear Input</button>
-            <button onclick="clearAllData()" style="background: #dc3545;">Clear All Saved Data</button>
+            <button onclick="clearAllData()" style="background: #dc3545;">Clear All Data</button>
         </div>
 
         <!-- User Database Section -->
@@ -215,77 +215,40 @@
             </div>
         </div>
 
-        <!-- Tournament Planning Section -->
-        <div class="section">
-            <h2>Tournament Grouping</h2>
-            <div id="tournamentGroups">
-                <p>Create balanced groups for Discord tournaments based on compatibility:</p>
-                <div style="margin: 15px 0;">
-                    <label>Tournament Type: </label>
-                    <select id="tournamentType">
-                        <option value="2v2">2v2 Teams</option>
-                        <option value="4player">4-Player Groups</option>
-                        <option value="6player">6-Player Groups</option>
-                        <option value="custom">Custom Size</option>
-                    </select>
-                    <button onclick="generateTournamentGroups()" style="margin-left: 10px;">Auto-Group Users</button>
-                </div>
-                <div id="groupResults"></div>
-            </div>
-        </div>
-
         <!-- Export Section -->
         <div class="section export-section">
             <h2>Export Data</h2>
             <p>Export your user data for Google Sheets, Discord planning, or further analysis:</p>
             <button onclick="exportToCSV()">Download CSV</button>
             <button onclick="exportToJSON()">Download JSON</button>
-            <button onclick="exportDiscordFormat()">Discord Tournament List</button>
             <button onclick="showGoogleSheetsFormat()">Google Sheets Format</button>
             <div id="exportPreview" style="margin-top: 20px;"></div>
         </div>
     </div>
 
     <script>
-        // Global variables
+        // Initialize users array and load from localStorage
         let users = [];
         let selectedUsers = [];
-        let tournamentGroups = [];
-        let savedMatches = [];
 
-        // Initialize on page load
-        document.addEventListener('DOMContentLoaded', function() {
+        // Load saved data when page starts
+        function initializeAdminTool() {
             console.log('Initializing admin tool...');
-            loadUsersFromStorage();
-        });
-
-        // Data persistence functions
-        function saveUsersToStorage() {
-            localStorage.setItem('adminToolUsers', JSON.stringify(users));
-            console.log('Users saved to localStorage:', users.length, 'users');
-        }
-
-        function loadUsersFromStorage() {
-            const savedUsers = JSON.parse(localStorage.getItem('adminToolUsers') || '[]');
-            users = savedUsers;
-            console.log('Users loaded from localStorage:', users.length, 'users');
-            updateUserTable();
-            updateStats();
-        }
-
-        function clearAllData() {
-            if (confirm('Are you sure you want to delete ALL saved user data? This cannot be undone.')) {
-                localStorage.removeItem('adminToolUsers');
-                users = [];
-                selectedUsers = [];
+            const savedUsers = localStorage.getItem('adminToolUsers');
+            if (savedUsers) {
+                users = JSON.parse(savedUsers);
+                console.log('Loaded', users.length, 'saved users');
                 updateUserTable();
                 updateStats();
-                document.getElementById('comparisonSection').style.display = 'none';
-                alert('All data cleared successfully!');
             }
         }
 
-        // Email parsing functions
+        // Save users to localStorage
+        function saveUsersToStorage() {
+            localStorage.setItem('adminToolUsers', JSON.stringify(users));
+            console.log('Saved', users.length, 'users to localStorage');
+        }
+
         function parseEmail() {
             console.log('parseEmail function called');
             
@@ -302,7 +265,7 @@
                 return;
             }
 
-            console.log('Email content:', emailContent);
+            console.log('Processing email content...');
 
             try {
                 const userData = extractUserData(emailContent);
@@ -312,7 +275,7 @@
                     // Check if user already exists
                     const existingIndex = users.findIndex(user => user.email === userData.email);
                     if (existingIndex !== -1) {
-                        users[existingIndex] = userData; // Update existing
+                        users[existingIndex] = userData;
                         alert('User updated successfully!');
                     } else {
                         users.push(userData);
@@ -325,26 +288,25 @@
                     updateUserTable();
                     updateStats();
                     
-                    // Clear input field
+                    // Clear input
                     emailInputElement.value = '';
                     
                 } else {
-                    alert('Could not parse email. Please check the format.\n\nExpected format:\nFIND MY PEOPLE DATA COLLECTION COMPLETED\nCompleted: [date]\n=== REQUIRED ASSESSMENTS ===\nSKILLS ASSESSMENT: [results]\nVALUES ASSESSMENT: [results]\n...');
+                    alert('Could not parse email. Please check the format.');
                     console.error('Failed to extract user data:', userData);
                 }
             } catch (error) {
                 console.error('Parse error:', error);
-                alert('Error parsing email: ' + error.message + '\n\nCheck browser console (F12) for details.');
+                alert('Error parsing email: ' + error.message);
             }
         }
 
         function extractUserData(emailContent) {
             console.log('Starting extraction...');
             
-            // Extract email address - handle your specific format
+            // Extract email address
             let emailMatch = emailContent.match(/\(([a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,})\)/);
             
-            // If not found, look for any email address
             if (!emailMatch) {
                 emailMatch = emailContent.match(/([a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,})/);
             }
@@ -361,7 +323,7 @@
             const completionDate = dateMatch ? dateMatch[1] : new Date().toLocaleDateString();
             console.log('Extracted date:', completionDate);
 
-            // Extract assessments with improved error handling
+            // Extract all assessments
             const data = {
                 email: email,
                 completionDate: completionDate,
@@ -375,19 +337,11 @@
             };
 
             console.log('Final extracted data:', data);
-
-            // Validate that we got at least some assessment data
-            const hasData = Object.values(data).some(value => value && typeof value === 'string' && value.length > 0);
-            if (!hasData) {
-                throw new Error('No assessment data found. Please check the email format.');
-            }
-
             return data;
         }
 
         function extractAssessment(content, assessmentName) {
             try {
-                // Handle both "ASSESSMENT:" and "ASSESSMENT " formats
                 const regex1 = new RegExp(assessmentName + ':\\s*([^\n\r]+)', 'i');
                 const regex2 = new RegExp(assessmentName + '\\s+([^\n\r]+)', 'i');
                 
@@ -405,18 +359,8 @@
             }
         }
 
-        function clearInput() {
-            const emailInput = document.getElementById('emailInput');
-            if (emailInput) {
-                emailInput.value = '';
-            }
-        }
-
-        // Table and display functions
         function updateUserTable() {
             const tbody = document.getElementById('userTableBody');
-            if (!tbody) return;
-            
             tbody.innerHTML = '';
 
             users.forEach((user, index) => {
@@ -430,13 +374,13 @@
                 row.innerHTML = `
                     <td class="assessment-data">${user.email}</td>
                     <td>${user.completionDate}</td>
-                    <td class="assessment-data">${user.skills ? user.skills : 'Missing'}</td>
-                    <td class="assessment-data">${user.values ? user.values : 'Missing'}</td>
-                    <td class="assessment-data">${user.interests ? user.interests : 'Missing'}</td>
+                    <td class="assessment-data">${user.skills || 'Missing'}</td>
+                    <td class="assessment-data">${user.values || 'Missing'}</td>
+                    <td class="assessment-data">${user.interests || 'Missing'}</td>
                     <td>${user.personality || 'Missing'}</td>
                     <td class="assessment-data">${user.gamingCharacter ? user.gamingCharacter.split('|')[0].trim() : 'Missing'}</td>
-                    <td class="assessment-data">${user.political ? user.political : '-'}</td>
-                    <td class="assessment-data">${user.religiousCentrality ? user.religiousCentrality : '-'}</td>
+                    <td class="assessment-data">${user.political || '-'}</td>
+                    <td class="assessment-data">${user.religiousCentrality || '-'}</td>
                     <td>${isComplete ? 'Complete' : `${requiredCount}/5`} ${optionalCount > 0 ? `(+${optionalCount})` : ''}</td>
                     <td><button onclick="event.stopPropagation(); removeUser(${index})" style="padding: 5px 8px; font-size: 12px;">Remove</button></td>
                 `;
@@ -471,8 +415,8 @@
 
         function removeUser(index) {
             users.splice(index, 1);
-            saveUsersToStorage(); // Save after removal
             selectedUsers = selectedUsers.filter(i => i !== index).map(i => i > index ? i - 1 : i);
+            saveUsersToStorage();
             updateUserTable();
             updateStats();
             if (selectedUsers.length < 2) {
@@ -480,118 +424,82 @@
             }
         }
 
-        function updateStats() {
-            const total = users.length;
-            const complete = users.filter(user => 
-                [user.skills, user.values, user.interests, user.personality, user.gamingCharacter].filter(x => x).length === 5
-            ).length;
-            
-            const totalAssessments = users.reduce((sum, user) => {
-                return sum + [user.skills, user.values, user.interests, user.personality, user.gamingCharacter].filter(x => x).length;
-            }, 0);
-            
-            const avgCompletion = total > 0 ? Math.round((totalAssessments / (total * 5)) * 100) : 0;
-
-            const totalElement = document.getElementById('totalUsers');
-            const completeElement = document.getElementById('completeUsers');
-            const avgElement = document.getElementById('avgCompletion');
-            
-            if (totalElement) totalElement.textContent = total;
-            if (completeElement) completeElement.textContent = complete;
-            if (avgElement) avgElement.textContent = avgCompletion + '%';
-        }
-
-        // NEW IMPROVED MATCHING ALGORITHM - Only counts meaningful overlap
         function showComparison() {
             const user1 = users[selectedUsers[0]];
             const user2 = users[selectedUsers[1]];
             
-            const comparison = calculateMeaningfulOverlap(user1, user2);
+            const comparison = calculateCompatibilityImproved(user1, user2);
             
             document.getElementById('comparisonSection').style.display = 'block';
             document.getElementById('comparisonContent').innerHTML = `
                 <div class="comparison">
                     <h3>Comparing ${user1.email} vs ${user2.email}</h3>
-                    <div class="overlap-score">Meaningful Compatibility: ${comparison.overallCompatibility}%</div>
-                    <p><strong>${comparison.note}</strong></p>
+                    <div class="overlap-score">
+                        Meaningful Compatibility: ${comparison.overallCompatibility}%
+                        <br><small style="font-size: 14px;">${comparison.note}</small>
+                    </div>
                     
                     <h4>Assessment Breakdown:</h4>
-                    ${generateMeaningfulComparisonHTML(comparison)}
+                    ${generateImprovedComparisonHTML(comparison)}
                     
-                    <h4>Matching Insights:</h4>
-                    <ul>
-                        ${comparison.insights.map(insight => `<li>${insight}</li>`).join('')}
-                    </ul>
-                    
-                    <div style="margin-top: 20px; text-align: center;">
-                        <button onclick="addToTournamentGroup(${selectedUsers[0]}, ${selectedUsers[1]})">
-                            Add to Tournament Group
-                        </button>
-                        <button onclick="saveMatchData(${selectedUsers[0]}, ${selectedUsers[1]})">
-                            Save This Match for Analysis
-                        </button>
+                    <div style="margin-top: 20px;">
+                        <h4>Calculation Details:</h4>
+                        <p>Assessments included in calculation: ${comparison.includedAssessments.join(', ')}</p>
+                        <p>Assessments excluded (0% or missing): ${comparison.excludedAssessments.join(', ')}</p>
                     </div>
                 </div>
             `;
         }
 
-        // NEW MATCHING ALGORITHM - Excludes zero-overlap assessments
-        function calculateMeaningfulOverlap(user1, user2) {
+        // CORRECTED MATCHING ALGORITHM - Only counts where both users have data AND there's overlap
+        function calculateCompatibilityImproved(user1, user2) {
             const assessmentFields = [
-                { name: 'Skills', key: 'skills' },
-                { name: 'Values', key: 'values' },
-                { name: 'Interests', key: 'interests' },
-                { name: 'Personality', key: 'personality' },
-                { name: 'Gaming Character', key: 'gamingCharacter' },
-                { name: 'Political Views', key: 'political' },
-                { name: 'Religious Centrality', key: 'religiousCentrality' }
+                'skills', 'values', 'interests', 'personality', 
+                'gamingCharacter', 'political', 'religiousCentrality'
             ];
             
             let meaningfulOverlapCount = 0;
             let totalMeaningfulScore = 0;
             const detailBreakdown = {};
-            const insights = [];
+            const includedAssessments = [];
+            const excludedAssessments = [];
             
             assessmentFields.forEach(field => {
-                const val1 = user1[field.key];
-                const val2 = user2[field.key];
+                const val1 = user1[field];
+                const val2 = user2[field];
                 
-                // Calculate compatibility if BOTH users have data for this assessment
-                if (val1 && val2 && val1.trim() !== '' && val2.trim() !== '') {
-                    const compatibility = calculateFieldCompatibility(val1, val2, field.key);
+                // Check if BOTH users actually completed this assessment
+                const hasValidData1 = val1 && val1.trim() !== '' && val1 !== 'Missing' && val1 !== 'Not completed' && val1 !== '-';
+                const hasValidData2 = val2 && val2.trim() !== '' && val2 !== 'Missing' && val2 !== 'Not completed' && val2 !== '-';
+                
+                if (hasValidData1 && hasValidData2) {
+                    const compatibility = calculateFieldCompatibility(val1, val2, field);
                     
                     // Only include assessments where there IS overlap (>0%)
                     if (compatibility > 0) {
                         meaningfulOverlapCount++;
                         totalMeaningfulScore += compatibility;
-                        detailBreakdown[field.key] = {
-                            name: field.name,
+                        includedAssessments.push(field);
+                        detailBreakdown[field] = {
                             user1: val1,
                             user2: val2,
                             compatibility: compatibility,
                             status: 'overlap'
                         };
-                        
-                        if (compatibility >= 75) {
-                            insights.push(`Strong ${field.name.toLowerCase()} alignment (${compatibility}%)`);
-                        } else if (compatibility >= 50) {
-                            insights.push(`Good ${field.name.toLowerCase()} compatibility (${compatibility}%)`);
-                        }
                     } else {
-                        // Both completed but 0% overlap - exclude from average
-                        detailBreakdown[field.key] = {
-                            name: field.name,
+                        // Both completed but 0% overlap - exclude from average but show
+                        excludedAssessments.push(field + ' (0% overlap)');
+                        detailBreakdown[field] = {
                             user1: val1,
                             user2: val2,
                             compatibility: compatibility,
                             status: 'no-overlap'
                         };
-                        insights.push(`No ${field.name.toLowerCase()} overlap - different strengths could be complementary`);
                     }
                 } else {
-                    // Missing data - exclude from calculation
-                    detailBreakdown[field.key] = {
-                        name: field.name,
+                    // Missing data from one or both users - exclude entirely
+                    excludedAssessments.push(field + ' (incomplete)');
+                    detailBreakdown[field] = {
                         user1: val1 || 'Not completed',
                         user2: val2 || 'Not completed',
                         compatibility: null,
@@ -610,34 +518,22 @@
                 meaningfulOverlaps: meaningfulOverlapCount,
                 totalAssessments: assessmentFields.length,
                 breakdown: detailBreakdown,
-                insights: insights.length > 0 ? insights : ['No significant overlaps found'],
+                includedAssessments: includedAssessments,
+                excludedAssessments: excludedAssessments,
                 note: meaningfulOverlapCount > 0 
-                    ? `Based on ${meaningfulOverlapCount} assessments with overlap (excludes 0% matches)`
+                    ? `Based on ${meaningfulOverlapCount} assessments with overlap`
                     : 'No meaningful overlap found'
             };
         }
 
-        function calculateFieldCompatibility(val1, val2, fieldType) {
-            if (!val1 || !val2) return 0;
-            
-            if (fieldType === 'personality') {
+        function calculateFieldCompatibility(val1, val2, field) {
+            if (field === 'personality') {
                 if (val1 === val2) return 100;
                 const shared = val1.split('').filter((char, i) => char === val2.charAt(i)).length;
                 return Math.round((shared / 4) * 100);
             }
             
-            if (fieldType === 'political') {
-                return val1.toLowerCase().trim() === val2.toLowerCase().trim() ? 100 : 0;
-            }
-            
-            if (fieldType === 'religiousCentrality') {
-                const score1 = parseFloat(val1.match(/[\d.]+/)?.[0] || 0);
-                const score2 = parseFloat(val2.match(/[\d.]+/)?.[0] || 0);
-                const diff = Math.abs(score1 - score2);
-                return Math.max(0, Math.round(100 - (diff * 25)));
-            }
-            
-            if (fieldType === 'gamingCharacter') {
+            if (field === 'gamingCharacter') {
                 const parts1 = val1.split('|').map(s => s.trim());
                 const parts2 = val2.split('|').map(s => s.trim());
                 
@@ -652,7 +548,18 @@
                 return total > 0 ? Math.round((matches / total) * 100) : 0;
             }
             
-            // For skills, values, interests - word-based matching
+            if (field === 'political') {
+                return val1.toLowerCase() === val2.toLowerCase() ? 100 : 0;
+            }
+            
+            if (field === 'religiousCentrality') {
+                const score1 = parseFloat(val1.match(/[\d.]+/)?.[0] || 0);
+                const score2 = parseFloat(val2.match(/[\d.]+/)?.[0] || 0);
+                const diff = Math.abs(score1 - score2);
+                return Math.max(0, Math.round(100 - (diff * 25)));
+            }
+            
+            // For skills, values, interests - word/phrase matching
             const words1 = val1.toLowerCase().split(/[,\s]+/).filter(w => w.length > 2);
             const words2 = val2.toLowerCase().split(/[,\s]+/).filter(w => w.length > 2);
             
@@ -664,88 +571,64 @@
             return totalWords > 0 ? Math.round((commonWords.length / totalWords) * 100) : 0;
         }
 
-        function generateMeaningfulComparisonHTML(comparison) {
-            return Object.values(comparison.breakdown).map(detail => {
-                let statusClass = '';
-                let statusText = '';
-                
-                if (detail.status === 'overlap') {
-                    if (detail.compatibility >= 70) statusClass = 'match';
-                    else if (detail.compatibility >= 40) statusClass = 'partial';
-                    else statusClass = 'no-match';
-                    statusText = `${detail.compatibility}% match`;
-                } else if (detail.status === 'no-overlap') {
-                    statusClass = 'no-match';
-                    statusText = '0% overlap';
-                } else {
-                    statusClass = 'missing';
-                    statusText = 'Missing data';
-                }
-                
-                return `
-                    <div class="assessment-comparison">
-                        <div class="assessment-item">
-                            <strong>${detail.name}</strong>
-                        </div>
-                        <div class="assessment-item ${statusClass}">
-                            <strong>User 1:</strong> ${detail.user1}
-                        </div>
-                        <div class="assessment-item ${statusClass}">
-                            <strong>User 2:</strong> ${detail.user2}
-                            ${detail.compatibility !== null ? `<br><strong>${statusText}</strong>` : `<br><strong>${statusText}</strong>`}
-                        </div>
+        function generateImprovedComparisonHTML(comparison) {
+            return Object.entries(comparison.breakdown).map(([field, detail]) => `
+                <div class="assessment-comparison">
+                    <div class="assessment-item">
+                        <strong>${field.charAt(0).toUpperCase() + field.slice(1)}</strong>
                     </div>
-                `;
-            }).join('');
+                    <div class="assessment-item ${detail.status}">
+                        <strong>User 1:</strong> ${detail.user1}
+                    </div>
+                    <div class="assessment-item ${detail.status}">
+                        <strong>User 2:</strong> ${detail.user2}
+                        ${detail.compatibility !== null ? `<br><strong>Match: ${detail.compatibility}%</strong>` : ''}
+                        ${detail.status === 'no-overlap' ? '<br><em>Excluded from average (0% overlap)</em>' : ''}
+                        ${detail.status === 'missing' ? '<br><em>Excluded from average (incomplete data)</em>' : ''}
+                    </div>
+                </div>
+            `).join('');
         }
 
-        // Tournament and export functions
-        function addToTournamentGroup(userIndex1, userIndex2) {
-            const user1 = users[userIndex1];
-            const user2 = users[userIndex2];
-            const comparison = calculateMeaningfulOverlap(user1, user2);
+        function updateStats() {
+            const total = users.length;
+            const complete = users.filter(user => 
+                [user.skills, user.values, user.interests, user.personality, user.gamingCharacter].filter(x => x).length === 5
+            ).length;
             
-            let existingGroup = tournamentGroups.find(group => 
-                group.members.some(member => member.email === user1.email || member.email === user2.email)
-            );
+            const totalAssessments = users.reduce((sum, user) => {
+                return sum + [user.skills, user.values, user.interests, user.personality, user.gamingCharacter].filter(x => x).length;
+            }, 0);
             
-            if (existingGroup) {
-                if (!existingGroup.members.some(m => m.email === user1.email)) {
-                    existingGroup.members.push(user1);
-                }
-                if (!existingGroup.members.some(m => m.email === user2.email)) {
-                    existingGroup.members.push(user2);
-                }
-            } else {
-                tournamentGroups.push({
-                    id: Date.now(),
-                    members: [user1, user2],
-                    compatibility: comparison.overallCompatibility,
-                    created: new Date().toLocaleDateString()
-                });
+            const avgCompletion = total > 0 ? Math.round((totalAssessments / (total * 5)) * 100) : 0;
+
+            document.getElementById('totalUsers').textContent = total;
+            document.getElementById('completeUsers').textContent = complete;
+            document.getElementById('avgCompletion').textContent = avgCompletion + '%';
+        }
+
+        function clearInput() {
+            document.getElementById('emailInput').value = '';
+        }
+
+        function clearAllData() {
+            if (confirm('Are you sure you want to delete ALL saved user data? This cannot be undone.')) {
+                localStorage.removeItem('adminToolUsers');
+                users = [];
+                selectedUsers = [];
+                updateUserTable();
+                updateStats();
+                document.getElementById('comparisonSection').style.display = 'none';
+                alert('All data cleared successfully!');
             }
-            
-            alert(`Added users to tournament group! (${comparison.overallCompatibility}% compatibility)`);
-            updateTournamentDisplay();
-        }
-
-        function saveMatchData(userIndex1, userIndex2) {
-            const user1 = users[userIndex1];
-            const user2 = users[userIndex2];
-            const comparison = calculateMeaningfulOverlap(user1, user2);
-            
-            savedMatches.push({
-                user1: user1.email,
-                user2: user2.email,
-                compatibility: comparison.overallCompatibility,
-                details: comparison.breakdown,
-                saved: new Date().toLocaleDateString()
-            });
-            
-            alert('Match data saved for future analysis!');
         }
 
         function exportToCSV() {
+            if (users.length === 0) {
+                alert('No users to export!');
+                return;
+            }
+
             const headers = ['Email', 'Completion Date', 'Skills', 'Values', 'Interests', 'Personality', 'Gaming Character', 'Political', 'Religious Centrality'];
             const rows = users.map(user => [
                 user.email,
@@ -767,6 +650,10 @@
         }
 
         function exportToJSON() {
+            if (users.length === 0) {
+                alert('No users to export!');
+                return;
+            }
             const jsonContent = JSON.stringify(users, null, 2);
             downloadFile('afriendlygame-users.json', jsonContent, 'application/json');
         }
@@ -815,117 +702,8 @@
             preview.innerHTML = html;
         }
 
-        function generateTournamentGroups() {
-            const tournamentType = document.getElementById('tournamentType').value;
-            let groupSize = 2;
-            
-            switch(tournamentType) {
-                case '2v2': groupSize = 4; break;
-                case '4player': groupSize = 4; break;
-                case '6player': groupSize = 6; break;
-                case 'custom': 
-                    groupSize = parseInt(prompt('Enter group size:') || '4');
-                    break;
-            }
-            
-            const availableUsers = users.filter(user => 
-                [user.skills, user.values, user.interests, user.personality, user.gamingCharacter].filter(x => x).length >= 4
-            );
-            
-            if (availableUsers.length < groupSize) {
-                alert(`Not enough complete users for ${groupSize}-person groups. Need at least ${groupSize}, have ${availableUsers.length}.`);
-                return;
-            }
-            
-            tournamentGroups = tournamentGroups.filter(group => !group.autoGenerated);
-            
-            for (let i = 0; i < availableUsers.length; i += groupSize) {
-                const groupMembers = availableUsers.slice(i, i + groupSize);
-                if (groupMembers.length === groupSize) {
-                    tournamentGroups.push({
-                        id: Date.now() + i,
-                        members: groupMembers,
-                        autoGenerated: true,
-                        type: tournamentType,
-                        created: new Date().toLocaleDateString()
-                    });
-                }
-            }
-            
-            updateTournamentDisplay();
-        }
-
-        function updateTournamentDisplay() {
-            const container = document.getElementById('groupResults');
-            if (!container) return;
-            
-            if (tournamentGroups.length === 0) {
-                container.innerHTML = '<p>No tournament groups created yet.</p>';
-                return;
-            }
-            
-            let html = '<h4>Tournament Groups:</h4>';
-            tournamentGroups.forEach((group, index) => {
-                html += `
-                    <div style="background: #f8f9fa; padding: 15px; margin: 10px 0; border-radius: 8px; border-left: 4px solid #CB6335;">
-                        <h5>Group ${index + 1} ${group.type ? `(${group.type})` : ''} ${group.autoGenerated ? '[Auto-Generated]' : '[Manual]'}</h5>
-                        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 10px;">
-                            ${group.members.map(member => `
-                                <div style="background: white; padding: 10px; border-radius: 5px;">
-                                    <strong>${member.email}</strong><br>
-                                    <small>
-                                        ${member.personality || 'No personality'} | 
-                                        ${member.gamingCharacter ? member.gamingCharacter.split('|')[0] : 'No gaming type'}
-                                    </small>
-                                </div>
-                            `).join('')}
-                        </div>
-                        <div style="text-align: right; margin-top: 10px;">
-                            <button onclick="removeGroup(${index})" style="background: #dc3545; padding: 5px 10px; font-size: 12px;">
-                                Remove Group
-                            </button>
-                        </div>
-                    </div>
-                `;
-            });
-            
-            container.innerHTML = html;
-        }
-
-        function removeGroup(index) {
-            tournamentGroups.splice(index, 1);
-            updateTournamentDisplay();
-        }
-
-        function exportDiscordFormat() {
-            if (tournamentGroups.length === 0) {
-                alert('No tournament groups to export!');
-                return;
-            }
-            
-            let discordText = `**A Friendly Game Tournament Groups - ${new Date().toLocaleDateString()}**\n\n`;
-            
-            tournamentGroups.forEach((group, index) => {
-                discordText += `**Group ${index + 1}** ${group.type ? `(${group.type})` : ''}\n`;
-                group.members.forEach(member => {
-                    const memberInfo = member.email.split('@')[0];
-                    const personality = member.personality || 'Unknown';
-                    const gamingType = member.gamingCharacter ? member.gamingCharacter.split('|')[0] : 'Unknown';
-                    discordText += `• ${memberInfo} - ${personality} | ${gamingType}\n`;
-                });
-                discordText += '\n';
-            });
-            
-            discordText += `\n*Generated by A Friendly Game Admin Tool*`;
-            
-            const preview = document.getElementById('exportPreview');
-            preview.innerHTML = `
-                <h3>Discord Tournament Groups Format:</h3>
-                <textarea style="width: 100%; height: 300px; font-family: monospace;">${discordText}</textarea>
-                <p><strong>Instructions:</strong> Copy the text above and paste it into your Discord tournament channel.</p>
-                <button onclick="navigator.clipboard.writeText('${discordText.replace(/'/g, "\\'")}')">Copy to Clipboard</button>
-            `;
-        }
+        // Initialize when page loads
+        document.addEventListener('DOMContentLoaded', initializeAdminTool);
     </script>
 </body>
 </html>
