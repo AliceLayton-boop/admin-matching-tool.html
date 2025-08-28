@@ -250,13 +250,63 @@
         let selectedUsers = [];
         let tournamentGroups = [];
         let savedMatches = [];
+function parseEmail() {
+    console.log('parseEmail function called');
+    
+    // Get the email input element with error checking
+    const emailInputElement = document.getElementById('emailInput');
+    if (!emailInputElement) {
+        console.error('emailInput element not found');
+        alert('Error: Cannot find email input field. Please refresh the page.');
+        return;
+    }
+    
+    const emailContent = emailInputElement.value.trim();
+    if (!emailContent) {
+        alert('Please paste an email first!');
+        return;
+    }
 
-        function parseEmail() {
-            const emailContent = document.getElementById('emailInput').value.trim();
-            if (!emailContent) {
-                alert('Please paste an email first!');
-                return;
+    console.log('Email content:', emailContent);
+
+    try {
+        const userData = extractUserData(emailContent);
+        console.log('Extracted user data:', userData);
+        
+        if (userData && userData.email) {
+            // Load existing users from localStorage
+            const savedUsers = JSON.parse(localStorage.getItem('adminToolUsers') || '[]');
+            
+            // Check if user already exists
+            const existingIndex = savedUsers.findIndex(user => user.email === userData.email);
+            if (existingIndex !== -1) {
+                savedUsers[existingIndex] = userData; // Update existing
+                alert('User updated successfully!');
+            } else {
+                savedUsers.push(userData);
+                alert('User added successfully!');
             }
+            
+            // Save back to localStorage
+            localStorage.setItem('adminToolUsers', JSON.stringify(savedUsers));
+            users = savedUsers; // Update global users array
+            
+            updateUserTable();
+            updateStats();
+            
+            // Clear input field
+            emailInputElement.value = '';
+            
+        } else {
+            alert('Could not parse email. Please check the format.\n\nExpected format:\nFIND MY PEOPLE DATA COLLECTION COMPLETED\nCompleted: [date]\n=== REQUIRED ASSESSMENTS ===\nSKILLS ASSESSMENT: [results]\nVALUES ASSESSMENT: [results]\n...');
+            console.error('Failed to extract user data:', userData);
+        }
+    } catch (error) {
+        console.error('Parse error:', error);
+        alert('Error parsing email: ' + error.message + '\n\nCheck browser console (F12) for details.');
+    }
+}
+    
 
             console.log('Parsing email content:', emailContent);
 
