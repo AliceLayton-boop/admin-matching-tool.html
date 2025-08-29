@@ -189,7 +189,6 @@
                         <tr>
                             <th>Email</th>
                             <th>Date</th>
-                            <th>Skills</th>
                             <th>Values</th>
                             <th>Interest</th>
                             <th>Personality</th>
@@ -323,11 +322,10 @@
             const completionDate = dateMatch ? dateMatch[1] : new Date().toLocaleDateString();
             console.log('Extracted date:', completionDate);
 
-            // Extract all assessments
+            // Extract all assessments - SKILLS REMOVED
             const data = {
                 email: email,
                 completionDate: completionDate,
-                skills: extractAssessment(emailContent, 'SKILLS ASSESSMENT'),
                 values: extractAssessment(emailContent, 'VALUES ASSESSMENT'),
                 interests: extractAssessment(emailContent, 'INTEREST ASSESSMENT'),
                 personality: extractAssessment(emailContent, 'PERSONALITY ASSESSMENT'),
@@ -367,21 +365,21 @@
                 const row = document.createElement('tr');
                 row.onclick = () => selectUser(index);
                 
-                const requiredCount = [user.skills, user.values, user.interests, user.personality, user.gamingCharacter].filter(x => x).length;
-                const isComplete = requiredCount === 5;
+                // Updated to expect 4 required assessments instead of 5
+                const requiredCount = [user.values, user.interests, user.personality, user.gamingCharacter].filter(x => x).length;
+                const isComplete = requiredCount === 4;
                 const optionalCount = [user.political, user.religiousCentrality].filter(x => x).length;
                 
                 row.innerHTML = `
                     <td class="assessment-data">${user.email}</td>
                     <td>${user.completionDate}</td>
-                    <td class="assessment-data">${user.skills || 'Missing'}</td>
                     <td class="assessment-data">${user.values || 'Missing'}</td>
                     <td class="assessment-data">${user.interests || 'Missing'}</td>
                     <td>${user.personality || 'Missing'}</td>
                     <td class="assessment-data">${user.gamingCharacter ? user.gamingCharacter.split('|')[0].trim() : 'Missing'}</td>
                     <td class="assessment-data">${user.political || '-'}</td>
                     <td class="assessment-data">${user.religiousCentrality || '-'}</td>
-                    <td>${isComplete ? 'Complete' : `${requiredCount}/5`} ${optionalCount > 0 ? `(+${optionalCount})` : ''}</td>
+                    <td>${isComplete ? 'Complete' : `${requiredCount}/4`} ${optionalCount > 0 ? `(+${optionalCount})` : ''}</td>
                     <td><button onclick="event.stopPropagation(); removeUser(${index})" style="padding: 5px 8px; font-size: 12px;">Remove</button></td>
                 `;
                 
@@ -451,10 +449,10 @@
             `;
         }
 
-        // CORRECTED MATCHING ALGORITHM - Only counts where both users have data AND there's overlap
+        // CORRECTED MATCHING ALGORITHM - SKILLS REMOVED from calculation
         function calculateCompatibilityImproved(user1, user2) {
             const assessmentFields = [
-                'skills', 'values', 'interests', 'personality', 
+                'values', 'interests', 'personality', 
                 'gamingCharacter', 'political', 'religiousCentrality'
             ];
             
@@ -559,7 +557,7 @@
                 return Math.max(0, Math.round(100 - (diff * 25)));
             }
             
-            // For skills, values, interests - word/phrase matching
+            // For values, interests - word/phrase matching
             const words1 = val1.toLowerCase().split(/[,\s]+/).filter(w => w.length > 2);
             const words2 = val2.toLowerCase().split(/[,\s]+/).filter(w => w.length > 2);
             
@@ -592,15 +590,17 @@
 
         function updateStats() {
             const total = users.length;
+            // Updated to expect 4 required assessments instead of 5
             const complete = users.filter(user => 
-                [user.skills, user.values, user.interests, user.personality, user.gamingCharacter].filter(x => x).length === 5
+                [user.values, user.interests, user.personality, user.gamingCharacter].filter(x => x).length === 4
             ).length;
             
             const totalAssessments = users.reduce((sum, user) => {
-                return sum + [user.skills, user.values, user.interests, user.personality, user.gamingCharacter].filter(x => x).length;
+                return sum + [user.values, user.interests, user.personality, user.gamingCharacter].filter(x => x).length;
             }, 0);
             
-            const avgCompletion = total > 0 ? Math.round((totalAssessments / (total * 5)) * 100) : 0;
+            // Updated calculation for 4 required assessments
+            const avgCompletion = total > 0 ? Math.round((totalAssessments / (total * 4)) * 100) : 0;
 
             document.getElementById('totalUsers').textContent = total;
             document.getElementById('completeUsers').textContent = complete;
@@ -629,11 +629,11 @@
                 return;
             }
 
-            const headers = ['Email', 'Completion Date', 'Skills', 'Values', 'Interests', 'Personality', 'Gaming Character', 'Political', 'Religious Centrality'];
+            // SKILLS REMOVED from export headers
+            const headers = ['Email', 'Completion Date', 'Values', 'Interests', 'Personality', 'Gaming Character', 'Political', 'Religious Centrality'];
             const rows = users.map(user => [
                 user.email,
                 user.completionDate,
-                user.skills || '',
                 user.values || '',
                 user.interests || '',
                 user.personality || '',
@@ -674,7 +674,8 @@
                 return;
             }
 
-            const headers = ['Email', 'Completion Date', 'Skills', 'Values', 'Interests', 'Personality', 'Gaming Character', 'Political', 'Religious Centrality'];
+            // SKILLS REMOVED from Google Sheets export headers
+            const headers = ['Email', 'Completion Date', 'Values', 'Interests', 'Personality', 'Gaming Character', 'Political', 'Religious Centrality'];
             const preview = document.getElementById('exportPreview');
             
             let html = '<h3>Copy this data to Google Sheets:</h3>';
@@ -685,7 +686,6 @@
                 const row = [
                     user.email,
                     user.completionDate,
-                    user.skills || '',
                     user.values || '',
                     user.interests || '',
                     user.personality || '',
