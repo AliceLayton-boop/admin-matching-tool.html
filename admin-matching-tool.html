@@ -85,6 +85,14 @@
         .selected-user {
             background: #e3f2fd !important;
         }
+        .recently-updated {
+            background: #fff3e0 !important;
+            border-left: 4px solid #FF9800;
+        }
+        .recently-updated.selected-user {
+            background: #e1f5fe !important;
+            border-left: 4px solid #FF9800;
+        }
         .comparison {
             background: #f0f8ff;
             border: 2px solid #CB6335;
@@ -180,6 +188,15 @@
                     <div class="stat-number" id="avgCompletion">0%</div>
                     <div>Avg Completion</div>
                 </div>
+                <div class="stat-card">
+                    <div class="stat-number" id="recentlyUpdated">0</div>
+                    <div>Recently Updated</div>
+                </div>
+            </div>
+            
+            <div style="margin: 20px 0; padding: 15px; background: #fff3e0; border-radius: 5px; border-left: 4px solid #FF9800;">
+                <p style="margin: 0; font-size: 14px;"><strong>Recently Updated Users:</strong> Orange highlighted rows indicate users who have resubmitted their assessments. Consider rematching these users.</p>
+                <button onclick="clearAllUpdateFlags()" style="margin-top: 10px; padding: 8px 15px; font-size: 14px;">Clear All Update Flags</button>
             </div>
             
             <p>Click on users to select them for comparison:</p>
@@ -189,6 +206,7 @@
                         <tr>
                             <th>Email</th>
                             <th>Date</th>
+                            <th>Last Updated</th>
                             <th>Values</th>
                             <th>Interest</th>
                             <th>Personality</th>
@@ -274,9 +292,14 @@
                     // Check if user already exists
                     const existingIndex = users.findIndex(user => user.email === userData.email);
                     if (existingIndex !== -1) {
+                        // Mark as recently updated for admin attention
+                        userData.recentlyUpdated = true;
+                        userData.lastUpdated = new Date().toISOString();
                         users[existingIndex] = userData;
-                        alert('User updated successfully!');
+                        alert('User updated successfully! (Highlighted for rematching consideration)');
                     } else {
+                        userData.recentlyUpdated = false;
+                        userData.lastUpdated = new Date().toISOString();
                         users.push(userData);
                         alert('User added successfully!');
                     }
@@ -370,21 +393,31 @@
                 const isComplete = requiredCount === 4;
                 const optionalCount = [user.political, user.religiousCentrality].filter(x => x).length;
                 
+                // Format last updated time
+                const lastUpdated = user.lastUpdated ? 
+                    new Date(user.lastUpdated).toLocaleString() : 
+                    'Unknown';
+                
                 row.innerHTML = `
                     <td class="assessment-data">${user.email}</td>
                     <td>${user.completionDate}</td>
+                    <td style="font-size: 11px;">${lastUpdated}</td>
                     <td class="assessment-data">${user.values || 'Missing'}</td>
                     <td class="assessment-data">${user.interests || 'Missing'}</td>
                     <td>${user.personality || 'Missing'}</td>
                     <td class="assessment-data">${user.gamingCharacter ? user.gamingCharacter.split('|')[0].trim() : 'Missing'}</td>
                     <td class="assessment-data">${user.political || '-'}</td>
                     <td class="assessment-data">${user.religiousCentrality || '-'}</td>
-                    <td>${isComplete ? 'Complete' : `${requiredCount}/4`} ${optionalCount > 0 ? `(+${optionalCount})` : ''}</td>
+                    <td>${isComplete ? 'Complete' : `${requiredCount}/4`} ${optionalCount > 0 ? `(+${optionalCount})` : ''}${user.recentlyUpdated ? ' 🔄' : ''}</td>
                     <td><button onclick="event.stopPropagation(); removeUser(${index})" style="padding: 5px 8px; font-size: 12px;">Remove</button></td>
                 `;
                 
+                // Apply visual highlighting
                 if (selectedUsers.includes(index)) {
                     row.classList.add('selected-user');
+                }
+                if (user.recentlyUpdated) {
+                    row.classList.add('recently-updated');
                 }
                 
                 tbody.appendChild(row);
@@ -595,6 +628,8 @@
                 [user.values, user.interests, user.personality, user.gamingCharacter].filter(x => x).length === 4
             ).length;
             
+            const recentlyUpdatedCount = users.filter(user => user.recentlyUpdated).length;
+            
             const totalAssessments = users.reduce((sum, user) => {
                 return sum + [user.values, user.interests, user.personality, user.gamingCharacter].filter(x => x).length;
             }, 0);
@@ -605,6 +640,26 @@
             document.getElementById('totalUsers').textContent = total;
             document.getElementById('completeUsers').textContent = complete;
             document.getElementById('avgCompletion').textContent = avgCompletion + '%';
+            document.getElementById('recentlyUpdated').textContent = recentlyUpdatedCount;
+        }
+
+        function clearAllUpdateFlags() {
+            const updatedCount = users.filter(user => user.recentlyUpdated).length;
+            
+            if (updatedCount === 0) {
+                alert('No recently updated users to clear.');
+                return;
+            }
+            
+            if (confirm(`Clear update flags for ${updatedCount} users? This indicates you have reviewed/rematched them.`)) {
+                users.forEach(user => {
+                    user.recentlyUpdated = false;
+                });
+                saveUsersToStorage();
+                updateUserTable();
+                updateStats();
+                alert(`Cleared update flags for ${updatedCount} users.`);
+            }
         }
 
         function clearInput() {
