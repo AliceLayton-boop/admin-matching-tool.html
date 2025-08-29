@@ -255,6 +255,27 @@
             if (savedUsers) {
                 users = JSON.parse(savedUsers);
                 console.log('Loaded', users.length, 'saved users');
+                
+                // Migrate existing user data to include new tracking fields
+                let needsMigration = false;
+                users.forEach(user => {
+                    if (user.recentlyUpdated === undefined) {
+                        user.recentlyUpdated = false;
+                        needsMigration = true;
+                    }
+                    if (!user.lastUpdated) {
+                        user.lastUpdated = user.completionDate ? 
+                            new Date(user.completionDate).toISOString() : 
+                            new Date().toISOString();
+                        needsMigration = true;
+                    }
+                });
+                
+                if (needsMigration) {
+                    console.log('Migrated existing users to include tracking fields');
+                    saveUsersToStorage();
+                }
+                
                 updateUserTable();
                 updateStats();
             }
